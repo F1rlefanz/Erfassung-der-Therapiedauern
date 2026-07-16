@@ -5,6 +5,27 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.5.0] - 2026-07-16 — Action Cycle 6: Intelligente Prognosen (Dynamic Seasonal Weighting)
+
+### Added
+- **Prognose-Engine** `src/lib/projections/` (rein, unit-getestet):
+  - **Lineare Hochrechnung** (Baseline): `Wert_YTD / verstrichene Tage * Tage/Jahr`.
+  - **Dynamische saisonale Hochrechnung** (Standard): rechnet die Jahresend-
+    Prognose über die Monatsverteilung heraus. Die Gewichte werden aus den
+    Beatmungstagen der **Vorjahre gelernt**; ohne Historie greift ein
+    **ICU-Fallback** (Winter hoch, Sommer niedrig). Teilmonate anteilig.
+- **Server-Aggregation** ohne Rohdaten-Transfer: `server/db.js` liefert
+  Beatmungstage je (Jahr, Monat); Auslieferung an den Client per Socket-Event
+  (`aggregates:monthly-ventilation`) und REST (`/aggregates/monthly-ventilation`).
+  Der Client hält nur die kompakten Monatsaggregate im Store (mitpersistiert →
+  Prognose auch offline mit gelernten Gewichten).
+- **UI im Statistik-Dashboard**: `ProjectionToggle` (Linear ↔ Saisonal/Empfohlen)
+  mit Info-Tooltip zur Datenbasis („… von X Vorjahren" bzw. „Klinischer
+  Standard-Fallback"); kumulativer Beatmungstage-Verlauf mit **Ist (durchgezogen)**
+  und **gestrichelter Prognose-Linie** (Recharts) sowie Jahresend-Prognose-Kennzahl.
+- Unit-Tests `projections.test.ts`: lineare Hochrechnung zur Jahresmitte und
+  saisonale Hochrechnung im Februar (moderater als linear bei Winter-Gewicht).
+
 ## [0.4.0] - 2026-07-16 — Action Cycle 5: Klinische Logik, Continuation & Statistik-Dashboard
 
 ### Added

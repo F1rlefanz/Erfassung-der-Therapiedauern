@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client'
 import type { Patient, TherapyRecord } from '../types'
+import type { MonthlyAggregate } from './projections/types'
 
 /**
  * Socket.io-Anbindung an den lokalen On-Premise-Server (Intranet).
@@ -21,6 +22,7 @@ export interface SyncHandlers {
   onInit: (snapshot: { patients: Patient[]; records: TherapyRecord[] }) => void
   onPatientUpsert: (patient: Patient) => void
   onRecordUpsert: (record: TherapyRecord) => void
+  onMonthlyAggregates: (aggregates: MonthlyAggregate[]) => void
   onStatusChange: (status: SyncStatus) => void
   getLocalSnapshot: () => { patients: Patient[]; records: TherapyRecord[] }
 }
@@ -45,6 +47,7 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('sync:init', handlers.onInit)
   s.on('patient:upsert', handlers.onPatientUpsert)
   s.on('record:upsert', handlers.onRecordUpsert)
+  s.on('aggregates:monthly-ventilation', handlers.onMonthlyAggregates)
 
   return () => {
     s.disconnect()

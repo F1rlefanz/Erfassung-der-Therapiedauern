@@ -104,10 +104,45 @@ function upsertRecord(record) {
   })
 }
 
+// Nur Beatmungs-Records mit Datum/Stunden — die Aggregation zählt Tage mit
+// mindestens einer markierten Stunde je (Jahr, Monat). So wandern nur die
+// kompakten Monatsaggregate zum Client, nicht der gesamte Rohdatensatz.
+const stmtVentilationRecords = db.prepare(
+  "SELECT date, hours_array FROM therapy_records WHERE therapy_type = 'beatmung'",
+)
+
+/**
+ * Aggregiert Beatmungstage je (Jahr, Monat) über alle Jahre. Ein Beatmungstag =
+ * ein Beatmungs-Record mit ≥1 markierter Stunde. Rückgabe: kompakte Liste
+ * { year, month, ventilationDays } für das Lern-Modell der Prognose.
+ */
+function getMonthlyVentilationAggregates() {
+  const counts = new Map() // "YYYY-M" -> Anzahl
+  for (const row of stmtVentilationRecords.all()) {
+    let hours
+    try {
+      hours = JSON.parse(row.hours_array)
+    } catch {
+      continue
+    }
+    if (!Array.isArray(hours) || !hours.some(Boolean)) continue
+    const year = Number(row.date.slice(0, 4))
+    const month = Number(row.date.slice(5, 7))
+    if (!year || !month) continue
+    const key = `${year}-${month}`
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  return [...counts.entries()].map(([key, ventilationDays]) => {
+    const [year, month] = key.split('-').map(Number)
+    return { year, month, ventilationDays }
+  })
+}
+
 module.exports = {
   DB_PATH,
   getAllPatients,
   getAllRecords,
   upsertPatient,
   upsertRecord,
+  getMonthlyVentilationAggregates,
 }

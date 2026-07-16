@@ -11,6 +11,7 @@ import {
   type SyncHandlers,
   type SyncStatus,
 } from '../lib/syncClient'
+import type { MonthlyAggregate } from '../lib/projections/types'
 
 /** Anzahl Stunden pro Tag (Index 0–23). */
 export const HOURS_PER_DAY = 24
@@ -117,6 +118,9 @@ interface TherapyState {
   // ---- Sync-Status (Anzeige) ----
   syncStatus: SyncStatus
 
+  // ---- Historische Monatsaggregate (für die Prognose-Engine) ----
+  monthlyHistory: MonthlyAggregate[]
+
   // ---- Lokale Actions (Optimistic Updates) ----
   setSelectedDate: (date: string) => void
   addPatient: (name: string, caseNumber: string) => void
@@ -154,6 +158,7 @@ export const useTherapyStore = create<TherapyState>()(
       paintTarget: null,
 
       syncStatus: 'offline',
+      monthlyHistory: [],
 
       setSelectedDate: (date) => set({ selectedDate: date }),
 
@@ -276,6 +281,7 @@ export const useTherapyStore = create<TherapyState>()(
           onInit: (snapshot) => get().applyRemoteSnapshot(snapshot),
           onPatientUpsert: (patient) => get().mergeRemotePatient(patient),
           onRecordUpsert: (record) => get().mergeRemoteRecord(record),
+          onMonthlyAggregates: (aggregates) => set({ monthlyHistory: aggregates }),
           getLocalSnapshot: () => ({
             patients: get().patients,
             records: get().therapyRecords,
@@ -343,6 +349,9 @@ export const useTherapyStore = create<TherapyState>()(
         selectedDate: state.selectedDate,
         patients: state.patients,
         therapyRecords: state.therapyRecords,
+        // Aggregate mitpersistieren, damit Prognosen auch offline gelernte
+        // Gewichte nutzen (nicht nur den ICU-Fallback).
+        monthlyHistory: state.monthlyHistory,
       }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {

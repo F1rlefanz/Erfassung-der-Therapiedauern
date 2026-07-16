@@ -25,6 +25,12 @@ app.get('/health', (_req, res) => {
   })
 })
 
+// Kompakte Monatsaggregate (Beatmungstage/Monat/Jahr) für die Prognose-Engine.
+// Bewusst nur Aggregate statt Rohdaten aller Jahre.
+app.get('/aggregates/monthly-ventilation', (_req, res) => {
+  res.json(db.getMonthlyVentilationAggregates())
+})
+
 const server = http.createServer(app)
 const io = new Server(server, { cors: { origin: '*' } })
 
@@ -36,6 +42,9 @@ io.on('connection', (socket) => {
     patients: db.getAllPatients(),
     records: db.getAllRecords(),
   })
+
+  // Monatsaggregate für die Prognose-Engine (kompakt, kein Rohdatensatz).
+  socket.emit('aggregates:monthly-ventilation', db.getMonthlyVentilationAggregates())
 
   socket.on('patient:upsert', (patient) => {
     try {
