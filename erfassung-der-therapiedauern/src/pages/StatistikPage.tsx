@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -13,50 +13,54 @@ import {
   YAxis,
 } from 'recharts'
 import { useTherapyStore } from '../store/therapyStore'
-import type { TherapyRecord } from '../types'
 import { THERAPY_TYPES } from '../lib/therapyTypes'
-import {
-  isVentilationDay,
-  therapyTypeDistribution,
-  totalTherapyHours,
-  totalVentilationDays,
-  ventilationDaysInMonth,
-} from '../lib/therapyCalculator'
-import { daysInMonth, projectYearEnd } from '../lib/projections/projections'
+import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
 import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
 import type { ProjectionModel } from '../lib/projections/types'
+import { availableYears, buildYearProjection } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
 import ProjectionToggle from '../components/statistik/ProjectionToggle'
+import YearSelector from '../components/statistik/YearSelector'
 
-const MONTH_NAMES = [
-  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
-]
 const MONTH_SHORT = [
   'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
 ]
 
 function StatistikPage() {
-  const patients = useTherapyStore((s) => s.patients)
   const records = useTherapyStore((s) => s.therapyRecords)
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
 
-  const [model, setModel] = useState<ProjectionModel>('seasonal')
-
   const today = todayISO()
-  const [year, month] = today.split('-').map(Number)
+  const currentYear = Number(today.slice(0, 4))
 
-  const distribution = therapyTypeDistribution(records)
+  const [model, setModel] = useState<ProjectionModel>('seasonal')
+  const [selectedYear, setSelectedYear] = useState(currentYear)
+
+  const years = useMemo(
+    () => availableYears(records, monthlyHistory, currentYear),
+    [records, monthlyHistory, currentYear],
+  )
+  const isCurrentYear = selectedYear === currentYear
+
+  // Alle Berechnungen filtern auf das gewählte Jahr (rein clientseitig).
+  const yearRecords = useMemo(
+    () => records.filter((r) => r.date.startsWith(`${selectedYear}-`)),
+    [records, selectedYear],
+  )
+  const patientsInYear = new Set(yearRecords.map((r) => r.patientId)).size
+
+  const distribution = therapyTypeDistribution(yearRecords)
   const distributionData = distribution.map((d) => {
     const meta = THERAPY_TYPES.find((t) => t.type === d.type)
     return { name: meta?.short ?? d.label, label: d.label, days: d.days, hours: d.hours }
   })
-  const hasDistributionData = records.some((r) => r.hours.some(Boolean))
+  const hasDistributionData = yearRecords.some((r) => r.hours.some(Boolean))
 
-  // ---- Prognose (Beatmungstage aktuelles Jahr) ----
-  const weights = computeSeasonalWeights(monthlyHistory, year)
-  const projection = buildProjection(records, year, month, today, model, weights.weights)
+  const weights = computeSeasonalWeights(monthlyHistory, currentYear)
+  const projection = buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights)
+  const chartData = projection.chart.map((p) => ({ month: MONTH_SHORT[p.month - 1], ist: p.ist, prognose: p.prognose }))
+
   const infoText =
     model === 'linear'
       ? 'Lineare Hochrechnung auf Basis des bisherigen Tagesdurchschnitts — ohne Saisonalität, nur als Vergleich.'
@@ -66,44 +70,48 @@ function StatistikPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-ink">Statistik</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Auswertung der erfassten Therapiedauern · Stand {formatDateDE(today)}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">Statistik</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            Auswertung der erfassten Therapiedauern · Stand {formatDateDE(today)}
+          </p>
+        </div>
+        <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Patienten gesamt" value={patients.length} />
-        <StatTile label="Beatmungstage gesamt" value={totalVentilationDays(records)} accent />
-        <StatTile
-          label="Beatmungstage im Monat"
-          value={ventilationDaysInMonth(records, year, month)}
-          hint={`${MONTH_NAMES[month - 1]} ${year}`}
-        />
-        <StatTile label="Therapiestunden gesamt" value={`${totalTherapyHours(records)} h`} />
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatTile label={`Patienten (${selectedYear})`} value={patientsInYear} />
+        <StatTile label={`Beatmungstage ${selectedYear}`} value={totalVentilationDays(yearRecords)} accent />
+        <StatTile label={`Therapiestunden ${selectedYear}`} value={`${totalTherapyHours(yearRecords)} h`} />
       </section>
 
-      {/* Jahresend-Prognose */}
+      {/* Beatmungstage-Verlauf: laufendes Jahr = Prognose, Vorjahr = final */}
       <section className="rounded-md border border-line bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-ink">Beatmungstage — Jahresend-Prognose</h2>
+            <h2 className="text-base font-semibold text-ink">
+              Beatmungstage — {isCurrentYear ? 'Jahresend-Prognose' : `Jahresverlauf ${selectedYear}`}
+            </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              Kumulierter Verlauf {year}: Ist und Hochrechnung zum Jahresende
+              {isCurrentYear
+                ? `Kumulierter Verlauf ${selectedYear}: Ist und Hochrechnung zum Jahresende`
+                : `Finaler kumulierter Verlauf ${selectedYear} (abgeschlossenes Jahr)`}
             </p>
           </div>
-          <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />
+          {isCurrentYear && <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />}
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:max-w-md">
-          <StatTile label={`Beatmungstage ${year} (bisher)`} value={projection.ytd} />
-          <StatTile label="Prognose Jahresende" value={Math.round(projection.yearEnd)} accent />
-        </div>
+        {isCurrentYear && (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:max-w-md">
+            <StatTile label={`Beatmungstage ${selectedYear} (bisher)`} value={projection.ytd} />
+            <StatTile label="Prognose Jahresende" value={Math.round(projection.yearEnd)} accent />
+          </div>
+        )}
 
         <div className="mt-4 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={projection.chart} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
               <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="month"
@@ -118,9 +126,9 @@ function StatistikPage() {
                 tickLine={false}
               />
               <Tooltip content={<ProjectionTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
+              {isCurrentYear && <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />}
               <Line
-                name="Ist (kumuliert)"
+                name={isCurrentYear ? 'Ist (kumuliert)' : `Beatmungstage ${selectedYear}`}
                 dataKey="ist"
                 stroke="var(--ui-primary)"
                 strokeWidth={2}
@@ -128,25 +136,29 @@ function StatistikPage() {
                 isAnimationActive={false}
                 connectNulls
               />
-              <Line
-                name="Prognose"
-                dataKey="prognose"
-                stroke="var(--ui-primary)"
-                strokeWidth={2}
-                strokeDasharray="5 4"
-                dot={false}
-                isAnimationActive={false}
-                connectNulls
-              />
+              {isCurrentYear && (
+                <Line
+                  name="Prognose"
+                  dataKey="prognose"
+                  stroke="var(--ui-primary)"
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
       </section>
 
-      {/* Verteilung der Therapiearten */}
+      {/* Verteilung der Therapiearten (gewähltes Jahr) */}
       <section className="rounded-md border border-line bg-surface p-5">
         <h2 className="text-base font-semibold text-ink">Verteilung der Therapiearten</h2>
-        <p className="mt-1 text-sm text-ink-muted">Aktive Tage (mit mindestens einer Stunde) je Therapieart</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          Aktive Tage (mit mindestens einer Stunde) je Therapieart · {selectedYear}
+        </p>
 
         {hasDistributionData ? (
           <div className="mt-4 h-72 w-full">
@@ -183,60 +195,12 @@ function StatistikPage() {
           </div>
         ) : (
           <p className="mt-4 rounded-md border border-dashed border-line p-6 text-center text-sm text-ink-muted">
-            Noch keine Therapiedaten erfasst.
+            Keine Therapiedaten für {selectedYear}.
           </p>
         )}
       </section>
     </div>
   )
-}
-
-/**
- * Baut Kennzahlen und Chart-Daten für die Jahresend-Prognose der Beatmungstage.
- * `ist` = kumulierter Verlauf bis zum aktuellen Monat, `prognose` = gestrichelte
- * Fortführung vom aktuellen Stand bis zur Jahresend-Prognose, verteilt nach den
- * Monatsgewichten des gewählten Modells.
- */
-function buildProjection(
-  records: TherapyRecord[],
-  year: number,
-  currentMonth: number,
-  today: string,
-  model: ProjectionModel,
-  weights: number[],
-) {
-  const perMonth = Array<number>(13).fill(0)
-  for (const r of records) {
-    if (!r.date.startsWith(`${year}-`) || r.date > today) continue
-    if (!isVentilationDay(r)) continue
-    perMonth[Number(r.date.slice(5, 7))] += 1
-  }
-  const cumulative = Array<number>(13).fill(0)
-  for (let m = 1; m <= 12; m++) cumulative[m] = cumulative[m - 1] + perMonth[m]
-  const ytd = cumulative[currentMonth]
-  const yearEnd = projectYearEnd(ytd, today, model, weights)
-
-  const monthWeight = (m: number) => (model === 'seasonal' ? weights[m - 1] : daysInMonth(year, m))
-  let remainingSum = 0
-  for (let m = currentMonth + 1; m <= 12; m++) remainingSum += monthWeight(m)
-
-  const chart = []
-  for (let m = 1; m <= 12; m++) {
-    let prognose: number | null = null
-    if (m === currentMonth) {
-      prognose = ytd
-    } else if (m > currentMonth) {
-      let accum = 0
-      for (let k = currentMonth + 1; k <= m; k++) accum += monthWeight(k)
-      prognose = remainingSum > 0 ? ytd + (yearEnd - ytd) * (accum / remainingSum) : yearEnd
-    }
-    chart.push({
-      month: MONTH_SHORT[m - 1],
-      ist: m <= currentMonth ? cumulative[m] : null,
-      prognose: prognose === null ? null : Math.round(prognose * 10) / 10,
-    })
-  }
-  return { ytd, yearEnd, chart }
 }
 
 interface DistTooltip {
@@ -258,7 +222,6 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
 interface ProjTooltip {
   name: string
   value: number | null
-  color: string
 }
 function ProjectionTooltip({
   active,

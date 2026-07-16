@@ -5,6 +5,22 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.7.0] - 2026-07-16 — Action Cycle 8: Jahresauswahl in der Statistik
+
+### Added
+- **Jahres-Filter** im Statistik-Dashboard: dezentes `YearSelector`-Dropdown im
+  Header. Auswählbare Jahre werden dynamisch aus den vorhandenen Records/Aggregaten
+  ermittelt (aktuelles Jahr immer enthalten).
+- Kennzahlen (Patienten, Beatmungstage, Therapiestunden) und die
+  Therapiearten-Verteilung filtern verzögerungsfrei clientseitig auf das gewählte
+  Jahr.
+- **Bedingtes Rendering der Prognose**: nur im laufenden Jahr Toggle (Linear/
+  Saisonal) + Jahresend-Prognose; für abgeschlossene Vorjahre wird ausschließlich
+  der finale kumulierte Ist-Verlauf über alle 12 Monate gezeigt (keine Hochrechnung).
+- Jahresbezogene Logik ausgelagert nach `src/lib/statistics.ts` (`availableYears`,
+  `buildYearProjection`) mit Unit-Tests (`statistics.test.ts`): Vorjahre liefern
+  statische Ist-Arrays ohne Prognose.
+
 ## [0.6.0] - 2026-07-16 — Action Cycle 7: RNG-Datenbank-Seeder (Dev-Tool)
 
 ### Added
