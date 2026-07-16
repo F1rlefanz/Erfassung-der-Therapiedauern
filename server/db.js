@@ -138,6 +138,16 @@ function getMonthlyVentilationAggregates() {
   })
 }
 
+/** Leert beide Tabellen (für den deterministischen Seeder / Clean Slate). */
+function clearAll() {
+  db.exec('DELETE FROM therapy_records; DELETE FROM patients;')
+}
+
+/** Führt `work` in einer einzigen Transaktion aus (schnelles Bulk-Insert). */
+function bulkWrite(work) {
+  db.transaction(work)()
+}
+
 module.exports = {
   DB_PATH,
   getAllPatients,
@@ -145,4 +155,6 @@ module.exports = {
   upsertPatient,
   upsertRecord,
   getMonthlyVentilationAggregates,
+  clearAll,
+  bulkWrite,
 }

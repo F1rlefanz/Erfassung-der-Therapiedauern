@@ -1,10 +1,11 @@
 {
   "name": "erfassung-der-therapiedauern-monorepo",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "On-Premise-Monorepo: lokaler Sync-Server (Node + SQLite + Socket.io) fuer die Therapiedauern-App. Das React-Frontend liegt in erfassung-der-therapiedauern/.",
   "scripts": {
-    "start:server": "node server/index.js"
+    "start:server": "node server/index.js",
+    "db:seed": "node server/seed.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",

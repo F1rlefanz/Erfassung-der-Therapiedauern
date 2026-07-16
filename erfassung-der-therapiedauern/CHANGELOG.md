@@ -5,6 +5,23 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.6.0] - 2026-07-16 — Action Cycle 7: RNG-Datenbank-Seeder (Dev-Tool)
+
+### Added
+- **Seeder-Skript** `server/seed.js` (`npm run db:seed`): generiert deterministisch
+  (fester PRNG-Seed) realistische Testdaten für 2024, 2025 (komplett) und 2026
+  (bis heute) für sechs fiktive Patienten. Beatmungstage folgen einer **saisonalen
+  Wahrscheinlichkeitskurve** (Winter Dez–Mär hoch, Sommer Jun–Aug niedrig,
+  Übergang mittel); zusätzlich vereinzelt CRRT und ILA/ECMO. IDs im Format
+  `patientId__date__therapyType`. Optionaler Clean-Slate (Standard) bzw. `--keep`.
+- Klarer Konsolen-Output je Jahr (z. B. „2024: 153 Beatmungstage (249 Records)").
+- `server/db.js`: `clearAll()` (Tabellen leeren) und `bulkWrite()` (Transaktion).
+
+### Notes
+- Mit den Seed-Daten greifen die gelernten Vorjahresgewichte: die saisonale
+  Jahresend-Prognose weicht nun sichtbar von der linearen ab (Demo: 117 vs. 139
+  Beatmungstage).
+
 ## [0.5.0] - 2026-07-16 — Action Cycle 6: Intelligente Prognosen (Dynamic Seasonal Weighting)
 
 ### Added
