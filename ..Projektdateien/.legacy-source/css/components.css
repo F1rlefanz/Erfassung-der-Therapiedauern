@@ -1,0 +1,414 @@
+/* components.css */
+
+/* Animationen */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.nav {
+    background-color: var(--background-color) !important;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+.nav-container {
+    width: 100%;
+    background-color: var(--background-color);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.nav-inner {
+    width: 100%;
+    height: 100%;
+    background-color: #2d3748;
+}
+
+/* Datum Container */
+.date-container {
+    display: flex;
+    flex-wrap: wrap;
+    background-color: var(--background-color);
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.date-container label {
+    margin-right: 10px;
+    color: var(--text-color);
+}
+
+.date-container input {
+    width: auto;
+    padding-right: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    text-align: center;
+    display: flex;
+}
+
+/* Button Styles */
+.arrow-button, 
+.calendar-button {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.calendar-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.arrow-button + .calendar-button {
+    margin-left: 12px;
+}
+
+/* Export Button Styles */
+.open-modal-button {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.open-modal-button img {
+    width: 25px;
+    height: 25px;
+}
+
+.open-modal-button:hover {
+    background-color: var(--secondary-color);
+}
+
+.export-button {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    align-self: center;
+}
+
+.export-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.export-button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Modal Styles */
+.modal {
+    display: none !important;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex !important;
+    opacity: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--background-color);
+    margin: auto;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    width: 80%;
+    max-width: 400px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.export-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.export-container label {
+    margin-bottom: 0.25rem;
+    color: var(--text-color);
+}
+
+.export-container input,
+.export-container select {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+}
+
+/* Fügen Sie dies zu Ihrer components.css hinzu */
+
+/* Graph Container Styles */
+.graph-container {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.chart-wrapper {
+    width: 100%;
+    height: 400px;
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+/* Settings Styles */
+.settings-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: var(--background-color);
+}
+
+.settings-section:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Header der Sektionen */
+.settings-section h2 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.settings-section {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.settings-group {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.settings-group h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.setting-item label {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.setting-item select,
+.settings-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.settings-button {
+    background-color: var(--primary-color);
+    border: none;
+    font-weight: bold;
+    padding: 12px 20px;
+}
+
+.settings-button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.settings-button:hover {
+    background-color: var(--secondary-color);
+}
+
+.button.primary img {
+    width: 20px; 
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.settings-button.primary:hover:not([disabled]) {
+    background-color: var(--secondary-color);
+}
+
+.settings-button.secondary {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+}
+
+.settings-button.secondary:hover:not([disabled]) {
+    background-color: var(--secondary-color);
+}
+
+/* Icon Container */
+.settings-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+/* Theme Button Gruppe */
+.theme-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.theme-button {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+    position: relative;
+}
+
+.theme-button.active::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* Lade- und Fehlerzustände */
+.settings-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--text-color);
+}
+
+.settings-error {
+    background-color: var(--error-color);
+    color: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+/* Import/Export Bereich */
+.data-management {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.data-management input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+    .settings-container {
+        padding: 10px;
+    }
+
+    .settings-section {
+        padding: 2rem;
+    }
+
+    .theme-buttons {
+        flex-wrap: nowrap;
+    }
+    }   
+
+    .chart-wrapper {
+        height: 300px;
+    }
+
+    .settings-button {
+        width: 100%;
+    }

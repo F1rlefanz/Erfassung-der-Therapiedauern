@@ -1,0 +1,121 @@
+Erfassung der Therapiedauer/
+├── coverage/                 # Test Coverage Reports
+│   ├── lcov-report/         # Detaillierte Coverage-Berichte
+│   ├── clover.xml           # Clover-Format Coverage
+│   ├── coverage-final.json  # Coverage JSON-Daten
+│   └── lcov.info           # LCOV Coverage-Daten
+│   
+├── css/
+│   ├── base.css            # Grundlegende Styles und Reset
+│   ├── components.css      # Styles für wiederverwendbare Komponenten
+│   ├── layout.css          # Layout-Strukturen und Grid-Systeme
+│   ├── responsive.css      # Responsive Design Anpassungen 
+│   ├── statistics.css      # Spezifische Styles für Statistik-Ansichten
+│   ├── styles.css          # Haupt-Stylesheet mit Imports
+│   ├── tables.css          # Tabellen-Formatierungen und -Layouts
+│   ├── theme-styles.css    # Theming und Farbschemata
+│   └── utilities.css       # Utility-Klassen für häufige Styling-Aufgaben
+│   
+├── html/
+│   ├── graphen.html        # Seite für Datenvisualisierungen
+│   ├── settings.html       # Einstellungs- und Konfigurationsseite
+│   ├── statistik.html      # Statistische Auswertungen
+│   └── therapiedauer.html  # Hauptseite zur Therapieerfassung
+│   
+├── images/
+│   ├── calendar-icon.png   # Kalender-Symbol
+│   ├── export-icon.png     # Export-Symbol
+│   └── favicon.jpeg        # Browser-Tab-Icon
+│   
+├── js/
+│   ├── charts/
+│   │   ├── MonthlyDistributionChart.js    # Monatliche Verteilungsdiagramme
+│   │   ├── TherapyYearChart.js            # Jahresübersichtsdiagramme
+│   │   └── TherapyYearComparisonChart.js  # Vergleichsdiagramme zwischen Jahren
+│   │
+│   ├── components/
+│   │   ├── ErrorBoundaryWrapper.js        # React Fehlerbehandlung
+│   │   ├── retry-continuation-button.js    # Button für Therapie-Wiederaufnahme
+│   │   ├── settings-component.js           # Einstellungsverwaltung
+│   │   └── year-selector-component.js      # Jahresauswahl-Komponente
+│   │
+│   ├── exports/
+│   │   ├── components/
+│   │   │   ├── ExportDialog.js            # Export-Dialog UI
+│   │   │   └── FilterOptions.js           # Filteroptionen für Export
+│   │   ├── formatters/
+│   │   │   ├── CSVFormatter.js            # CSV-Formatierung
+│   │   │   ├── PDFFormatter.js            # PDF-Formatierung
+│   │   │   └── TableFormatter.js          # Tabellenformatierung
+│   │   ├── interfaces/
+│   │   │   └── ExportTypes.js             # Export-Typdefinitionen
+│   │   ├── services/
+│   │   │   ├── CSVGenerator.js            # CSV-Generierung
+│   │   │   ├── DataCollector.js           # Datensammlung
+│   │   │   ├── DBGenerator.js             # Datenbank-Export
+│   │   │   ├── JSONGenerator.js           # JSON-Generierung
+│   │   │   └── PDFGenerator.js            # PDF-Generierung
+│   │   └── utils/
+│   │       ├── FormatUtils.js             # Formatierungshilfen
+│   │       └── ValidationUtils.js          # Validierungshilfen
+│   │
+│   ├── managers/
+│   │   ├── TableManager.js                 # Tabellenverwaltung
+│   │   └── TherapyManager.js               # Therapiedatenverwaltung
+│   │
+│   ├── projections/
+│   │   ├── calculators/
+│   │   │   ├── LinearProjection.js         # Lineare Hochrechnungen
+│   │   │   ├── ProjectionUtils.js          # Hochrechnungshilfen
+│   │   │   └── WeightedProjection.js       # Gewichtete Hochrechnungen
+│   │   ├── components/
+│   │   │   ├── ProjectionColumn.js         # Hochrechnungsspalten
+│   │   │   ├── ProjectionInfo.js           # Hochrechnungsinfo
+│   │   │   ├── ProjectionToggle.js         # Hochrechnungsumschalter
+│   │   │   ├── SeverityTableWithProjections.js    # Schweregradtabelle
+│   │   │   └── StatisticsTableWithProjections.js  # Statistiktabelle
+│   │   ├── interfaces/
+│   │   │   └── ProjectionTypes.js          # Hochrechnungstypen
+│   │   └── ProjectionManager.js            # Hochrechnungsverwaltung
+│   │
+│   ├── statistics/
+│   │   ├── ProjectionsStatisticsManager.js # Hochrechnungsstatistik
+│   │   └── StatisticsManager.js            # Statistikverwaltung
+│   │
+│   ├── utils/
+│   │   ├── dataUtils.js                    # Datenverarbeitungshilfen
+│   │   ├── dateUtils.js                    # Datumsverarbeitungshilfen
+│   │   └── exportUtils.js                  # Exporthilfen
+│   │
+│   ├── dbConfig.js                         # Datenbankkonfiguration
+│   ├── dbStores.js                         # Datenbank-Store-Definitionen
+│   ├── dbUtils.js                          # Datenbankhilfsfunktionen
+│   ├── graphen.js                          # Diagramm-Initialisierung
+│   ├── hooks.js                            # React Custom Hooks
+│   ├── index.js                            # Hauptanwendungs-Entry
+│   ├── main.js                             # Hauptanwendungslogik
+│   ├── modal.js                            # Modal-Dialog-Funktionalität
+│   ├── navigation-component.js             # Navigationskomponente
+│   ├── navigation.js                       # Navigationslogik
+│   ├── reactV18Check.js                    # React-Versionscheck
+│   ├── renderUtils.js                      # Render-Hilfsfunktionen
+│   ├── settings.js                         # Einstellungslogik
+│   ├── state.js                            # Zustandsverwaltung
+│   ├── statistics.js                       # Statistiklogik
+│   ├── tableUtils.js                       # Tabellen-Hilfsfunktionen
+│   ├── theme-manager.js                    # Theme-Verwaltung
+│   ├── validationRules.js                  # Validierungsregeln
+│   └── yearlyDBManager.js                  # Jahres-DB-Verwaltung
+│
+├── tests/
+│   ├── projections/
+│   │   ├── calculators/
+│   │   │   ├── LinearProjection.test.js    # Tests für Lineare Hochrechnung
+│   │   │   └── ProjectionUtils.test.js     # Tests für Hochrechnungshilfen
+│   │   ├── components/
+│   │   │   ├── ProjectionInfo.test.js      # Tests für Hochrechnungsinfo
+│   │   │   └── ProjectionToggle.test.js    # Tests für Hochrechnungsumschalter
+│   │   └── ProjectionManager.test.js       # Tests für Hochrechnungsverwaltung
+│   └── jest.config.js                      # Jest-Testkonfiguration
+│
+└── index.html                              # Haupteinstiegspunkt

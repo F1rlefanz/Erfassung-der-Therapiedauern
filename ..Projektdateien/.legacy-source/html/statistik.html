@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../images/favicon.jpeg" type="image/jpeg">
+    <title>Statistiken</title>
+
+    <!-- CSS Reihenfolge: Theme > Base > Layout > Components > Utilities -->
+    <link rel="stylesheet" href="../css/theme-styles.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/tables.css">
+    <link rel="stylesheet" href="../css/statistics.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    
+    <!-- Externe Libraries -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navigation-root" role="navigation" aria-label="Hauptnavigation"></div>
+
+    <!-- Hauptinhalt -->
+    <main class="main-content" role="main">
+        <h1 id="statistiken" class="page-title">Statistiken</h1>
+        <div id="year-selector-root" class="mb-4"></div>
+        
+        <!-- Statistik-Tabellen werden hier dynamisch eingefügt -->
+        <div id="statistics-container" class="space-y-6"></div>
+    </main>
+        
+    <!-- Footer -->
+    <footer class="footer">
+        <i data-lucide="copyright"></i>
+        2024 Erfassung der Therapiedauer - Erstellt von Christoph Fischer
+    </footer>
+
+    <!-- Module -->
+    <script type="module" src="../js/dbConfig.js"></script>
+    <script type="module" src="../js/reactV18Check.js"></script>
+    <script type="module" src="../js/hooks.js"></script>
+    <script type="module" src="../js/navigation-component.js"></script>
+    <script type="module" src="../js/navigation.js"></script>
+    <script type="module" src="../js/theme-manager.js"></script>
+
+    <!-- Projektions-Module -->
+    <script type="module" src="../js/projections/ProjectionManager.js"></script>
+    <script type="module" src="../js/projections/ProjectionContext.js"></script>
+    <script type="module" src="../js/projections/components/ProjectionToggle.js"></script>
+    <script type="module" src="../js/projections/components/ProjectionInfo.js"></script>
+    <script type="module" src="../js/projections/components/ProjectionColumn.js"></script>
+    <script type="module">
+        import { StatisticsManager } from '../js/statistics.js';
+        import YearSelector from '../js/components/year-selector-component.js';
+        import { ReactErrorBoundary, createSafeRoot } from '../js/reactV18Check.js';
+    </script>
+</body>
+</html>

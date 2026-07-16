@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../images/favicon.jpeg" type="image/jpeg">
+    <title>Erfassung der Therapiedauer</title>
+
+    <!-- CSS Reihenfolge: Theme > Base > Layout > Components > Utilities -->
+    <link rel="stylesheet" href="../css/theme-styles.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/tables.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    
+    <!-- Externe Libraries -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navigation-root" role="navigation" aria-label="Hauptnavigation"></div>
+
+    <!-- Hauptinhalt -->
+    <main class="main-content">
+        <h1 class="page-title">Erfassung der Therapiedauer</h1>
+        
+        <!-- Datums-Navigation und Export -->
+        <div class="flex items-center gap-4 header">
+            <div class="flex-grow date-container">
+                <button id="prev-day" class="arrow-button" type="button" aria-label="Vorheriger Tag" title="Vorheriger Tag">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+
+                <input type="date" id="date" placeholder="DD-MM-YYYY" title="Datum auswählen" aria-label="Aktuelles Datum" 
+                       class="date-input">
+
+                <button id="next-day" class="arrow-button" type="button" aria-label="Nächster Tag" title="Nächster Tag">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+
+                <button id="today-button" class="calendar-button" type="button" aria-label="Heute" title="Heutigen Tag aufrufen">
+                    <img src="../images/calendar-icon.png" alt="Heute">
+                </button>
+                
+                <div id="retry-continuation-root"></div>
+            </div>
+        
+            <button id="open-export-modal" class="export-button" type="button" aria-label="Export" title="Öffne die Exportoptionen">
+                <img src="../images/export-icon.png" alt="Export">
+            </button>
+        </div>
+        
+        <!-- Tabellen Container -->
+        <div id="tables-container" class="space-y-6" aria-label="Therapiedauer Tabellen">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </main>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+        <div class="modal-content">
+            <button class="modal-close" type="button" aria-label="Modal schließen">
+                <i data-lucide="x"></i>
+            </button>
+
+            <div class="export-container">
+                <h2 id="modal-title" class="modal-title">Daten exportieren</h2>
+
+                <div class="form-group">
+                    <label for="start-date">Startdatum:</label>
+                    <input type="date" id="start-date" name="start-date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="end-date">Enddatum:</label>
+                    <input type="date" id="end-date" name="end-date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="filter-duration">Mindestdauer (Stunden):</label>
+                    <input type="number" id="filter-duration" name="filter-duration" min="0" placeholder="Mindestdauer (h)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="filter-treatment">Behandlungsart:</label>
+                    <select id="filter-treatment" name="filter-treatment">
+                        <option value="">Alle</option>
+                        <option value="beatmung">Beatmungsdauer</option>
+                        <option value="crrt">Nierenersatzverfahren</option>
+                        <option value="ila_ecmo">Extrakorporale Lungenunterstützung</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="export-format">Exportformat:</label>
+                    <select id="export-format" name="export-format">
+                        <option value="csv">CSV</option>
+                        <option value="pdf">PDF</option>
+                        <option value="json">JSON</option>
+                        <option value="db">SQL</option>
+                    </select>
+                </div>
+
+                <button id="modal-export-button" class="mt-4 button primary" type="button">
+                    <img src="../images/export-icon.png" alt="Export" aria-hidden="true"  class="w-5 h-5">
+                    Exportieren
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <i data-lucide="copyright"></i>
+        2024 Erfassung der Therapiedauer - Erstellt von Christoph Fischer
+    </footer>
+
+    <!-- Module -->
+    <script type="module" src="../js/dbConfig.js"></script>
+    <script type="module" src="../js/reactV18Check.js"></script>
+    <script type="module" src="../js/hooks.js"></script>
+    <script type="module" src="../js/navigation-component.js"></script>
+    <script type="module" src="../js/navigation.js"></script>
+    <script type="module" src="../js/theme-manager.js"></script>
+
+    <!-- Seitenspezifische Module -->
+    <script type="module" src="../js/state.js"></script>
+    <script type="module" src="../js/modal.js"></script>
+    <script type="module" src="../js/tableUtils.js"></script>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/validationRules.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../images/favicon.jpeg" type="image/jpeg">
+    <title>Einstellungen</title>
+
+    <!-- CSS Reihenfolge: Theme > Base > Layout > Components > Utilities -->
+    <link rel="stylesheet" href="../css/theme-styles.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    
+    <!-- Externe Libraries -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navigation-root" role="navigation" aria-label="Hauptnavigation"></div>
+
+    <!-- Hauptinhalt -->
+    <main class="main-content">
+        <h1 class="page-title">Einstellungen</h1>
+        
+        <!-- Settings Container -->
+        <div id="settings-root" class="space-y-6">
+            <!-- Wird dynamisch durch React gefüllt -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <i data-lucide="copyright"></i>
+        2024 Erfassung der Therapiedauer - Erstellt von Christoph Fischer
+    </footer>
+
+    <!-- Module -->
+    <script type="module" src="../js/dbConfig.js"></script>
+    <script type="module" src="../js/reactV18Check.js"></script>
+    <script type="module" src="../js/hooks.js"></script>
+    <script type="module" src="../js/navigation-component.js"></script>
+    <script type="module" src="../js/navigation.js"></script>
+    <script type="module" src="../js/theme-manager.js"></script>
+    <script type="module" src="../js/settings.js"></script>
+</body>
+</html>

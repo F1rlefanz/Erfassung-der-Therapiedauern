@@ -1,0 +1,425 @@
+/* statistics.css */
+
+/*
+ * Spezifische Styles für die Schweregradstatistik-Tabellen
+ * Diese bauen auf den Basis-Tabellenstilen aus tables.css auf
+ */
+
+/* Grundlegende Container-Styles für Schweregradtabellen */
+.severity-table {
+    margin-top: 2rem;  /* Abstand zur vorherigen Tabelle */
+}
+
+/* Tabellen-Layout für Schweregradstatistiken */
+.severity-table table {
+    min-width: 100%;
+    table-layout: fixed;  /* Wichtig für definierte Spaltenbreiten */
+    width: 100%;
+}
+
+/* Tabellen-Header Basis-Styling für alle Statistiktabellen */
+.statistics-table thead th {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    padding: 12px 8px;
+    font-size: 0.9em;
+    vertical-align: top;          
+    line-height: 1.2;
+    height: auto;                 
+    word-wrap: break-word;        
+    hyphens: auto;               
+    overflow-wrap: break-word;   
+    position: relative;          /* Wichtig für Tooltip-Positionierung */
+}
+
+/* Tooltip für alle Statistiktabellen */
+.statistics-table th[data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 0.8em;
+    white-space: nowrap;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    min-width: 120px;
+    text-align: center;
+    font-weight: normal;
+}
+
+/* Pfeil unter dem Tooltip */
+.statistics-table th[data-tooltip]:hover::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--border-color);
+    margin-bottom: -10px;
+}
+
+/* Spezifische Spaltenbreiten für Hochrechnungsspalten */
+.statistics-table th[data-projection] {
+    width: 6%;
+}
+
+/* 
+ * Kopfzeilen-Styling 
+ * Speziell angepasst für lange Überschriften in der Schweregradstatistik
+ */
+.severity-table thead th {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    padding: 12px 8px;
+    font-size: 0.9em;
+    vertical-align: top;          
+    line-height: 1.2;
+    height: auto;                 
+    word-wrap: break-word;        /* Erlaubt Wortumbruch bei langen Überschriften */
+    hyphens: auto;               /* Aktiviert automatische Silbentrennung */
+    overflow-wrap: break-word;   /* Verhindert Überlauf bei langen Wörtern */
+}
+
+/* Zellen-Styling im Tabellenkörper */
+.severity-table td {
+    padding: 8px;
+    text-align: right;           /* Rechtsbündige Ausrichtung für Zahlen */
+    vertical-align: middle;
+    white-space: nowrap;         /* Keine Zeilenumbrüche in Datenzellen */
+}
+
+/* Ausnahme für die erste Spalte (Jahr) */
+.severity-table td:first-child {
+    text-align: center;
+}
+
+/* Styling für berechnete Werte */
+.severity-table .value {
+    font-family: 'Consolas', monospace;  /* Bessere Lesbarkeit für Zahlen */
+    color: var(--text-color);
+}
+
+/* Spezielle Formatierung für Prozentwerte */
+.severity-table .beatmung-percentage::after {
+    content: '%';                /* Fügt Prozentzeichen automatisch hinzu */
+    margin-left: 2px;
+    opacity: 0.8;
+}
+
+/* 
+ * Editierbare Zellen Basis-Stil 
+ * Wichtig für Benutzerinteraktion und visuelle Rückmeldung
+ */
+.severity-table td[contenteditable="true"] {
+    background-color: rgba(155, 89, 182, 0.1);  /* Leicht hervorgehobener Hintergrund */
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: text;                /* Zeigt Texteingabe-Cursor */
+    position: relative;          /* Für Tooltip-Positionierung */
+    text-align: right;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Hover-Effekt für editierbare Zellen */
+.severity-table td[contenteditable="true"]:hover {
+    background-color: rgba(155, 89, 182, 0.2);  /* Dunklerer Hintergrund bei Hover */
+}
+
+/* Tooltip für editierbare Zellen */
+.severity-table td[contenteditable="true"]:hover::before {
+    content: "Klicken zum Bearbeiten";
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background-color);
+    color: var(--text-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Spaltenbreiten für ICU-Tabelle */
+.severity-table#icu-severity-2024 th {
+    /* Angepasste Breiten für verschiedene Spaltentypen */
+    &:nth-child(1) { width: 6%; }    /* Jahr */
+    &:nth-child(2) { width: 8%; }    /* Fälle */
+    &:nth-child(3) { width: 10%; }   /* Begonnene Beatmungstage */
+    &:nth-child(4) { width: 8%; }    /* Ganze Beatmungstage */
+    &:nth-child(5) { width: 10%; }   /* Beatmungsstunden total */
+    &:nth-child(6) { width: 8%; }    /* Beatmungspatienten */
+    &:nth-child(7) { width: 10%; }   /* Anteil Beatmungspatienten */
+    &:nth-child(8) { width: 12%; }   /* Durchschnittliche Beatmungsdauer */
+    &:nth-child(9) { width: 8%; }    /* Hämofiltrationstage */
+    &:nth-child(10) { width: 8%; }   /* ECMO-Tage */
+    &:nth-child(11) { width: 6%; }   /* TISS-28-Punkte */
+    &:nth-child(12) { width: 6%; }   /* TISS-28-Punkte pro Fall */
+}
+
+/* Spaltenbreiten für IMC-Tabelle */
+.severity-table#imc-severity-2024 th {
+    width: 25%;                      /* Gleichmäßige Verteilung für 4 Spalten */
+}
+
+/* Spezielle Hervorhebungen */
+.severity-table .tiss-per-case {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Status-Indikatoren für Änderungen */
+.severity-table .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.severity-table .status-indicator.changed {
+    background-color: var(--primary-color);
+    animation: pulse 1.5s infinite;
+}
+
+.projection-column {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-style: italic;
+}
+
+.projection-column.hidden {
+    display: none;
+}
+
+/* Füge diese Styles zu statistics.css hinzu */
+.statistics-table tr:not(.summary):not(.average) {
+    transition: background-color 0.2s;
+}
+
+/* Gesamtzeile und Durchschnittszeile Styling */
+.statistics-table tr.summary,
+.statistics-table tr.average {
+    background-color: var(--primary-color);
+}
+
+/* Verbesserter Kontrast für Zahlen in den Gesamtzeilen */
+.statistics-table tr.summary td,
+.statistics-table tr.average td {
+    color: #ffffff !important;  /* Reines Weiß */
+    font-weight: bold;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5); /* Stärkerer Schatten */
+    letter-spacing: 0.5px; /* Bessere Lesbarkeit */
+}
+
+/* Speziell für numerische Werte */
+.statistics-table tr.summary .value,
+.statistics-table tr.average .value,
+.statistics-table tr.summary td:not(:first-child),
+.statistics-table tr.average td:not(:first-child) {
+    font-family: 'Consolas', monospace;
+    color: #ffffff !important;
+    font-size: 1.1em; /* Leicht größer */
+    font-weight: 600;
+}
+
+/* Speziell für die Hochrechnungsspalten in den Gesamtzeilen */
+.statistics-table tr.summary td[class*="projection"],
+.statistics-table tr.average td[class*="projection"] {
+    color: rgba(255, 255, 255, 0.9) !important;  /* Leicht transparentes Weiß */
+    font-style: italic;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.statistics-table tr.summary {
+    border-top: 2px solid var(--border-color);
+}
+
+.statistics-table tr.summary::after,
+.statistics-table tr.average::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1); /* Leichte Abdunkelung */
+    pointer-events: none;
+}
+
+.statistics-table tr.summary,
+.statistics-table tr.average {
+    background-color: var(--primary-color);
+    position: relative;
+}
+
+/* Spezifische Spaltenbreite für die erste Spalte (Monat) */
+.statistics-table th:first-child {
+    width: 6%;
+}
+
+.statistics-table th {
+    background-color: var(--primary-color);
+    color: white;
+    width: 8%;
+}
+
+.statistics-table td {
+    padding: 8px;
+}
+
+.statistics-table .value {
+    font-family: 'Consolas', monospace;
+    color: var(--text-color);
+}
+
+.statistics-table tr.summary .value,
+.statistics-table tr.average .value {
+    color: white;  /* Für bessere Lesbarkeit auf farbigem Hintergrund */
+}
+
+/* Container für die Tabellen */
+.statistics-table-container {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+
+/* Das innere blaue Element */
+.statistics-table {
+    max-width: 100%;
+    overflow-x: auto;
+    background-color: var(--background-color);
+    border-radius: 8px;
+}
+
+/* Die Tabelle selbst */
+.statistics-table table {
+    min-width: 100%;
+    width: max-content;  /* Erlaubt der Tabelle, so breit zu werden wie nötig */
+    border-collapse: collapse;
+}
+
+/* Container-Breite */
+#main-content {
+    width: 98vw;  /* Fast volle Viewport-Breite */
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* Basis-Spaltenbreiten */
+.statistics-table th,
+.statistics-table td {
+    padding: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Spezifische Spaltenbreiten */
+.statistics-table th:nth-child(1) {
+    width: 8%;  /* Monat */
+}
+
+.statistics-table th:nth-child(2),
+.statistics-table td:nth-child(2) {
+    width: 10%;  /* Beatmungsdauerstunden */
+}
+
+.statistics-table th:nth-child(3),
+.statistics-table td:nth-child(3) {
+    width: 8%;  /* Hochrechnung */
+}
+
+.statistics-table th:nth-child(4),
+.statistics-table td:nth-child(4) {
+    width: 10%;  /* Begonnene Beatmungsdauertage */
+}
+
+.statistics-table th:nth-child(5),
+.statistics-table td:nth-child(5) {
+    width: 8%;  /* Hochrechnung */
+}
+
+.statistics-table th:nth-child(6),
+.statistics-table td:nth-child(6) {
+    width: 10%;  /* Ganze Beatmungsdauertage */
+}
+
+.statistics-table th:nth-child(7),
+.statistics-table td:nth-child(7) {
+    width: 8%;  /* Hochrechnung */
+}
+
+.statistics-table th:nth-child(8),
+.statistics-table td:nth-child(8) {
+    width: 10%;  /* Beatmungsdauerpatienten */
+}
+
+.statistics-table th:nth-child(9),
+.statistics-table td:nth-child(9) {
+    width: 8%;  /* Hochrechnung */
+}
+
+.statistics-table th:nth-child(10),
+.statistics-table td:nth-child(10) {
+    width: 12%;  /* Beatmungsdauerdauer in Tagen */
+}
+
+.statistics-table th:nth-child(11),
+.statistics-table td:nth-child(11) {
+    width: 8%;  /* Hochrechnung */
+}
+
+/* Zusätzliche Styling-Verbesserungen */
+.statistics-table th {
+    font-weight: bold;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Verbesserte Lesbarkeit für Zahlen */
+.statistics-table td:not(:first-child) {
+    text-align: right;
+    font-family: 'Consolas', monospace;
+}
+
+/* Formatierung für Hochrechnungsspalten */
+.statistics-table.show-projections td:nth-child(3n) {
+    color: var(--primary-color);
+    font-style: italic;
+}
+
+/* Animation für Status-Indikatoren */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Therapie-Tracking System">
+    <link rel="icon" href="./images/favicon.jpeg" type="image/jpeg">
+    <title>Dashboard</title>
+
+    <!-- CSS Reihenfolge: Theme > Base > Layout > Components > Utilities -->
+    <link rel="stylesheet" href="./css/theme-styles.css">
+    <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/layout.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/tables.css">
+    <link rel="stylesheet" href="./css/utilities.css">
+
+    <!-- Externe Libraries -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navigation-root" role="navigation" aria-label="Hauptnavigation"></div>
+    
+    <!-- Hauptinhalt -->
+    <main class="main-content">
+        <h1 class="page-title">Willkommen beim Therapie-Tracking</h1>
+
+        <!-- Schnellzugriff und Übersicht -->
+        <section class="grid-cols-2 grid-layout">
+            <!-- Quick Links -->
+            <div class="content-box">
+                <h2 class="section-title">Schnellzugriff</h2>
+                <div class="grid-cols-2 gap-4 grid-layout">
+                    <a href="./html/Therapiedauer.html" class="quick-link">
+                        Therapiedauer erfassen
+                    </a>
+                    <a href="./html/graphen.html" class="quick-link">
+                        Graphen ansehen
+                    </a>
+                    <a href="./html/statistik.html" class="quick-link">
+                        Statistiken ansehen
+                    </a>
+                    <a href="./html/settings.html" class="quick-link">
+                        Einstellungen
+                    </a>
+                </div>
+            </div>
+        
+            <!-- Aktuelle Übersicht -->
+            <div class="content-box">
+                <h2 class="section-title">Aktuelle Übersicht</h2>
+                <div class="flex flex-col gap-2">
+                    <p class="status-text">
+                        Erfasste Therapien heute: <span id="today-count">0</span>
+                    </p>
+                    <p class="status-text">
+                        Aktive Therapien: <span id="active-count">0</span>
+                    </p>
+                    <p class="status-text">
+                        Letzte Aktualisierung: <span id="last-update">-</span>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <i data-lucide="copyright"></i>
+        2024 Erfassung der Therapiedauer - Erstellt von Christoph Fischer
+    </footer>
+
+    <!-- Module -->
+    <script type="module" src="./js/dbConfig.js"></script>
+    <script type="module" src="./js/reactV18Check.js"></script>
+    <script type="module" src="./js/hooks.js"></script>
+    <script type="module" src="./js/navigation-component.js"></script>
+    <script type="module" src="./js/navigation.js"></script>
+    <script type="module" src="./js/index.js"></script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+/* theme-styles.css */
+
+/*
+ * Basis-Variablen für alle Themes
+ * ========================================================================== */
+ :root {
+    /* Primäre Farbpalette */
+    --primary-color: #9b59b6;
+    --secondary-color: #8e44ad;
+    --background-color: #34495e;
+    --text-color: #ecf0f1;
+    --border-color: #7f8c8d;
+    
+    /* Status Farben */
+    --error-color: #e74c3c;
+    --success-color: #2ecc71;
+    --warning-color: #f1c40f;
+    --info-color: #3498db;
+    
+    /* Gradienten */
+    --gradient-start: #2c3e50;
+    --gradient-end: #4ca1af;
+    
+    /* UI Komponenten */
+    --card-bg: var(--background-color);
+    --card-border: var(--border-color);
+    --input-bg: #2d3748;
+    --button-hover: #4a5568;
+    
+    /* Schatten */
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --box-shadow-hover: 0 6px 8px rgba(0, 0, 0, 0.2);
+    
+    /* Transitions */
+    --transition-duration: 0.3s;
+}
+
+/*
+ * Dark Theme
+ * ========================================================================== */
+[data-theme='dark'] {
+    /* Basis-Farben */
+    --background-color: #1a1a1a;
+    --card-bg: #1e2837;
+    --card-border: #2d3748;
+    --text-color: #ffffff;
+    --border-color: #333333;
+    
+    /* Text & Überschriften */
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5e0;
+    --heading-color: var(--primary-color);
+    
+    /* UI Elemente */
+    --button-hover: #4a5568;
+    --input-bg: #2d3748;
+    
+    /* Schatten */
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --box-shadow-hover: 0 6px 8px rgba(0, 0, 0, 0.4);
+    
+    /* Gradienten */
+    --gradient-start: #1a1a1a;
+    --gradient-end: #2c3e50;
+}
+
+/*
+ * Light Theme
+ * ========================================================================== */
+[data-theme='light'] {
+    /* Basis-Farben */
+    --background-color: #f8fafc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --text-color: #2d3748;
+    --border-color: #e2e8f0;
+    
+    /* Text & Überschriften */
+    --text-primary: #1a202c;
+    --text-secondary: #2d3748;
+    --heading-color: #8e44ad;
+    
+    /* UI Elemente */
+    --button-hover: #f7fafc;
+    --input-bg: #edf2f7;
+    
+    /* Schatten */
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --box-shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    /* Gradienten */
+    --gradient-start: #f8fafc;
+    --gradient-end: #edf2f7;
+    
+    /* Status-Farben mit besseren Kontrasten */
+    --error-color: #e53e3e;
+    --success-color: #38a169;
+    --warning-color: #d69e2e;
+    --info-color: #3182ce;
+}
+
+/*
+ * Gemeinsame Komponenten-Styles
+ * ========================================================================== */
+.content-box {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin: 0.5rem 0;
+    box-shadow: var(--box-shadow);
+    transition: all var(--transition-duration);
+}
+
+.content-box:hover {
+    box-shadow: var(--box-shadow-hover);
+    transform: translateY(-2px);
+}
+
+/* Buttons */
+.primary-button {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: background-color var(--transition-duration);
+}
+
+.primary-button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Status-Styles */
+.status-text {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.id-text {
+    opacity: 0.8;
+    color: var(--text-secondary);
+}
+
+/* Dropdown Styling */
+.dropdown-menu {
+    min-width: 200px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--box-shadow);
+    border-radius: 0.375rem;
+}
+
+.dropdown-menu button {
+    color: var(--text-color);
+    transition: background-color var(--transition-duration);
+}
+
+.dropdown-menu button:hover {
+    background-color: var(--button-hover);
+}
+.position-fix {
+    transform: translate(-100%, -4rem) !important;
+    z-index: 9999 !important;
+}
+/* Basis-Container für das Dropdown */
+.action-dropdown {
+    position: relative;
+}
+
+/* Das Dropdown-Menü selbst */
+.action-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    min-width: 200px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--box-shadow);
+    border-radius: 0.375rem;
+    z-index: 9999;
+    margin-top: 0.5rem;
+    transform: translate(-20%, -4rem);
+}
+
+.action-dropdown-menu button { 
+    color: var(--text-color); /* Statt text-gray-700 */
+}
+
+/* Dropdown Menü-Items */
+.action-dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    color: var(--text-color); 
+    transition: background-color var(--transition-duration);
+}
+
+.action-dropdown-item:hover {
+    background-color: var(--button-hover);
+}
+
+/* Spezielle Styles für Aktions-Items */
+.action-dropdown-item.danger {
+    color: #e74c3c;
+}
+
+.action-dropdown-item.danger:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Therapie-Ende Status */
+.therapy-ended {
+    opacity: 0.7;
+    transition: opacity var(--transition-duration);
+}
+
+.therapy-ended input {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: none;
+    pointer-events: none;
+}
+
+.therapy-ended .hour {
+    cursor: not-allowed;
+}
+
+/* Auto-Continue Marker */
+.hour.active.auto-continued {
+    position: relative;
+    overflow: visible;
+}
+
+.hour.active.auto-continued::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--success-color);
+    animation: pulse 2s infinite;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 var(--success-color);
+        opacity: 1;
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 4px transparent;
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 transparent;
+        opacity: 1;
+    }
+}

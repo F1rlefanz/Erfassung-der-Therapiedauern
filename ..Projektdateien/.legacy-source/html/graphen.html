@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Graphische Auswertungen der Therapiedauer">
+    <link rel="icon" href="../images/favicon.jpeg" type="image/jpeg">
+    <title>Graphen & Visualisierungen</title>
+
+    <!-- CSS Reihenfolge: Theme > Base > Layout > Components > Utilities -->
+    <link rel="stylesheet" href="../css/theme-styles.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    
+    <!-- Externe Libraries -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.js" 
+        crossorigin="anonymous" 
+        referrerpolicy="no-referrer">
+    </script>
+    <!-- Fallback, falls Recharts nicht geladen werden kann -->
+    <script>
+        window.addEventListener('DOMContentLoaded', function checkRecharts() {
+            // Warte kurz um sicherzustellen, dass defer-Scripts geladen wurden
+            setTimeout(() => {
+                if (!window.Recharts) {
+                    console.error('Recharts nicht verfügbar. Versuche erneut zu laden...');
+                    
+                    // Versuche alternatives CDN
+                    const alternativeScript = document.createElement('script');
+                    alternativeScript.src = 'https://unpkg.com/recharts@2.10.3/umd/Recharts.min.js';
+                    alternativeScript.onload = () => {
+                        console.log('Recharts erfolgreich über alternatives CDN geladen');
+                        location.reload(); // Seite neu laden um Charts zu initialisieren
+                    };
+                    alternativeScript.onerror = (err) => {
+                        console.error('Auch alternatives CDN fehlgeschlagen:', err);
+                        ['yearly-chart', 'monthly-chart', 'comparison-chart'].forEach(id => {
+                            const container = document.getElementById(id);
+                            if (container) {
+                                container.innerHTML = `
+                                    <div class="error-message bg-[#2d3748] p-4 rounded shadow">
+                                        <h3 class="text-lg font-bold text-[#9b59b6] mb-2">
+                                            Fehler beim Laden der Graphen
+                                        </h3>
+                                        <p class="text-[#ecf0f1] mb-4">
+                                            Die Graphen-Bibliothek konnte nicht geladen werden.
+                                        </p>
+                                        <button onclick="location.reload()" 
+                                                class="bg-[#9b59b6] text-white px-4 py-2 rounded hover:bg-[#8e44ad]">
+                                            Seite neu laden
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        });
+                    };
+                    document.head.appendChild(alternativeScript);
+                } else {
+                    console.log('Recharts erfolgreich geladen');
+                }
+            }, 1000); // Warte 1 Sekunde nach DOMContentLoaded
+        });
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navigation-root" role="navigation" aria-label="Hauptnavigation"></div>
+    
+    <!-- Hauptinhalt -->
+    <main class="main-content">
+        <h1 class="page-title">Graphen & Visualisierungen</h1>
+        <div id="year-selector-root" class="mb-4"></div>
+
+        <!-- Jahresverlauf -->
+        <section class="mb-6 content-box" role="region" aria-labelledby="yearly-title">
+            <h2 class="section-title" id="yearly-title">Therapiedauer im Jahresverlauf</h2>
+            <div id="yearly-chart" class="chart-wrapper"></div>
+        </section>
+
+        <!-- Monatliche Verteilung -->
+        <section class="mb-6 content-box" role="region" aria-labelledby="monthly-title">
+            <h2 class="section-title" id="monthly-title">Monatliche Verteilung</h2>
+            <div id="monthly-chart" class="chart-wrapper"></div>
+        </section>
+
+        <!-- Jahresvergleich -->
+        <section class="mb-6 content-box" role="region" aria-labelledby="comparison-title">
+            <h2 class="section-title" id="comparison-title">Jahresvergleich</h2>
+            <div id="comparison-chart" class="chart-wrapper"></div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <i data-lucide="copyright"></i>
+        2024 Erfassung der Therapiedauer - Erstellt von Christoph Fischer
+    </footer>
+
+    <!-- Module -->
+    <script type="module" src="../js/dbConfig.js"></script>
+    <script type="module" src="../js/reactV18Check.js"></script>
+    <script type="module" src="../js/hooks.js"></script>
+    <script type="module" src="../js/navigation-component.js"></script>
+    <script type="module" src="../js/navigation.js"></script>
+    <script type="module" src="../js/theme-manager.js"></script>
+
+    <!-- Graph-spezifische Module -->
+    <script type="module" src="../js/charts/TherapyYearChart.js"></script>
+    <script type="module" src="../js/charts/MonthlyDistributionChart.js"></script>
+    <script type="module" src="../js/graphen.js"></script>
+    <script type="module">
+        import YearSelector from '../js/components/year-selector-component.js';
+        import { ReactErrorBoundary, createSafeRoot } from '../js/reactV18Check.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const yearSelectorRoot = document.getElementById('year-selector-root');
+            if(yearSelectorRoot) {
+                const root = createSafeRoot(yearSelectorRoot, 'YearSelector');
+                root.render(
+                    React.createElement(ReactErrorBoundary, null,
+                        React.createElement(YearSelector)
+                    )
+                );
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+/* styles.css */
+@import './base.css';
+@import './components.css';
+@import './tables.css';
+@import './statistics.css';
+@import './responsive.css';
+@import './theme-styles.css';

@@ -1,0 +1,119 @@
+Erfassung der Therapiedauer/
+├── coverage/
+│   ├── lcov-report/
+│   │   [Hier wurde der Rest ausgelassen.]
+│   ├── clover.xml
+│   ├── coverage-final.json
+│   └── lcov.info
+├── css/
+│   ├── base.css
+│   ├── components.css
+│   ├── layout.css
+│   ├── responsive.css
+│   ├── statistics.css
+│   ├── styles.css
+│   ├── tables.css
+│   ├── theme-styles.css
+│   └── utilities.css
+├── html/
+│   ├── graphen.html
+│   ├── settings.html
+│   ├── statistik.html
+│   └── therapiedauer.html
+├── images/
+│   ├── calendar-icon.png
+│   ├── export-icon.png
+│   └── favicon.jpeg
+├── js/
+│   ├── charts/
+│   │   ├── MonthlyDistributionChart.js
+│   │   ├── TherapyYearChart.js
+│   │   └── TherapyYearComparisonChart.js
+│   ├── components/
+│   │   ├── ErrorBoundaryWrapper.js
+│   │   ├── retry-continuation-button.js
+│   │   ├── settings-component.js
+│   │   └── year-selector-component.js
+│   ├── exports/
+│   │   ├── components/
+│   │   │   ├── ExportDialog.js
+│   │   │   └── FilterOptions.js
+│   │   ├── formatters/
+│   │   │   ├── CSVFormatter.js
+│   │   │   ├── PDFFormatter.js
+│   │   │   └── TableFormatter.js
+│   │   ├── interfaces/
+│   │   │   └── ExportTypes.js
+│   │   ├── services/
+│   │   │   ├── CSVGenerator.js
+│   │   │   ├── DataCollector.js
+│   │   │   ├── DBGenerator.js
+│   │   │   ├── JSONGenerator.js
+│   │   │   └── PDFGenerator.js
+│   │   ├── utils/
+│   │   │   ├── FormatUtils.js
+│   │   │   └── ValidationUtils.js
+│   │   └── ExportManager.js
+│   ├── managers/
+│   │   ├── TableManager.js
+│   │   └── TherapyManager.js
+│   ├── projections/
+│   │   ├── calculators/
+│   │   │   ├── LinearProjection.js
+│   │   │   ├── ProjectionUtils.js
+│   │   │   └── WeightedProjection.js
+│   │   ├── components/
+│   │   │   ├── ProjectionColumn.js
+│   │   │   ├── ProjectionInfo.js
+│   │   │   ├── ProjectionToggle.js
+│   │   │   ├── SeverityTableWithProjections.js
+│   │   │   └── StatisticsTableWithProjections.js
+│   │   ├── interfaces/
+│   │   │   └── ProjectionTypes.js
+│   │   ├── validators/
+│   │   │   └── ProjectionValidator.js
+│   │   ├── ProjectionContext.js
+│   │   └── ProjectionManager.js
+│   ├── statistics/
+│   │   ├── ProjectionsStatisticsManager.js
+│   │   └── StatisticsManager.js
+│   ├── utils/
+│   │   ├── dataUtils.js
+│   │   ├── dateUtils.js
+│   │   └── exportUtils.js
+│   ├── dbConfig.js
+│   ├── dbStores.js
+│   ├── dbUtils.js
+│   ├── graphen.js
+│   ├── hooks.js
+│   ├── index.js
+│   ├── main.js
+│   ├── modal.js
+│   ├── navigation-component.js
+│   ├── navigation.js
+│   ├── reactV18Check.js
+│   ├── renderUtils.js
+│   ├── settings.js
+│   ├── state.js
+│   ├── statistics.js
+│   ├── tableUtils.js
+│   ├── theme-manager.js
+│   ├── validationRules.js
+│   └── yearlyDBManager.js
+├── node_modules/
+│   [Hier wurde der Rest ausgelassen.]
+├── readme/
+│   ├── Generiere_Projektstruktur.ps1
+│   └── Projektstruktur.txt
+├── tests/
+│   ├── projections/
+│   │   ├── calculators/
+│   │   │   ├── LinearProjection.test.js
+│   │   │   └── ProjectionUtils.test.js
+│   │   ├── components/
+│   │   │   ├── ProjectionInfo.test.js
+│   │   │   └── ProjectionToggle.test.js
+│   │   └── ProjectionManager.test.js
+│   └── jest.config.js
+├── index.html
+└── tailwind.config.js

@@ -1,0 +1,89 @@
+**********************
+PowerShell transcript start
+Start time: 20250119105224
+Username: DESKTOP-I1HFFUI\Christoph
+RunAs User: DESKTOP-I1HFFUI\Christoph
+Configuration Name: 
+Machine: DESKTOP-I1HFFUI (Microsoft Windows NT 10.0.26100.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -NoProfile -ExecutionPolicy Bypass -Command Import-Module 'c:\Users\Christoph\.vscode\extensions\ms-vscode.powershell-2024.4.0\modules\PowerShellEditorServices\PowerShellEditorServices.psd1'; Start-EditorServices -HostName 'Visual Studio Code Host' -HostProfileId 'Microsoft.VSCode' -HostVersion '2024.4.0' -BundledModulesPath 'c:\Users\Christoph\.vscode\extensions\ms-vscode.powershell-2024.4.0\modules' -EnableConsoleRepl -StartupBanner "PowerShell Extension v2024.4.0
+Copyright (c) Microsoft Corporation.
+
+https://aka.ms/vscode-powershell
+Type 'help' to get help.
+" -LogLevel 'Normal' -LogPath 'c:\Users\Christoph\AppData\Roaming\Code\User\globalStorage\ms-vscode.powershell\logs\1737279924-ad5a5fbc-29da-4be3-afce-9869c46c870a1737276617353' -SessionDetailsPath 'c:\Users\Christoph\AppData\Roaming\Code\User\globalStorage\ms-vscode.powershell\sessions\PSES-VSCode-20932-302078.json' -FeatureFlags @() 
+Process ID: 28264
+PSVersion: 7.4.6
+PSEdition: Core
+GitCommitId: 7.4.6
+OS: Microsoft Windows 10.0.26100
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\readme\Techstack.txt
+=== Node & npm Versionen ===
+
+
+
+=== Installierte npm Pakete ===
+
+
+=== VS Code Extensions ===
+
+
+=== ESLint & Prettier ===
+
+Get-Content: C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\readme\get-techstack.ps1:21:5
+Line |
+  21 |      Get-Content .eslintrc.js
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\.eslintrc.js' because it does not exist.
+Get-Content: C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\readme\get-techstack.ps1:21:5
+Line |
+  21 |      Get-Content .eslintrc.js
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\.eslintrc.js' because it does not exist.
+
+
+Get-Content: C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\readme\get-techstack.ps1:23:5
+Line |
+  23 |      Get-Content .prettierrc
+     |      ~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\.prettierrc' because it does not exist.
+Get-Content: C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\readme\get-techstack.ps1:23:5
+Line |
+  23 |      Get-Content .prettierrc
+     |      ~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\Christoph\Code\HTMLProjects\Erfassung der Therapiedauer\.prettierrc' because it does not exist.
+
+
+=== Live Server ===
+
+
+=== CDN Dependencies ===
+
+index.html:19:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+index.html:20:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+html\graphen.html:18:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+html\graphen.html:19:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+html\graphen.html:22:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.js"
+html\graphen.html:34:                    // Versuche alternatives CDN
+html\graphen.html:38:                        console.log('Recharts erfolgreich über alternatives CDN geladen');
+html\graphen.html:42:                        console.error('Auch alternatives CDN fehlgeschlagen:', err);
+html\settings.html:17:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+html\settings.html:18:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+html\settings.html:20:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+html\settings.html:21:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+html\statistik.html:19:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+html\statistik.html:20:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+html\therapiedauer.html:18:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+html\therapiedauer.html:19:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+html\therapiedauer.html:21:    <script defer src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+html\therapiedauer.html:22:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+html\therapiedauer.html:23:    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+**********************
+PowerShell transcript end
+End time: 20250119105227
+**********************

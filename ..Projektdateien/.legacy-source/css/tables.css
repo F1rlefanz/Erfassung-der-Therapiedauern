@@ -1,0 +1,164 @@
+/* tables.css */
+
+/* Tabellen-Container */
+.table-container {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Basis Tabellen-Styling */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+/* Tabellenkopf */
+.table thead th {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    padding: 0.75rem;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* Tabellenkörper */
+.table tbody td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(155, 89, 182, 0.1);
+}
+
+/* Zeilen mit alternierendem Hintergrund */
+.table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Eingabefelder in Tabellen */
+.table input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+/* Stunden-Marker in Tabellen */
+.table .hour {
+    margin: 0 auto;
+}
+
+/* Statistik-Zeile */
+.table-statistics {
+    background-color: var(--card-bg);
+    border-top: 2px solid var(--border-color);
+    font-weight: 500;
+}
+
+.fallzahl-container {
+    text-align: left;
+    padding: 0.75rem;
+}
+
+.gesamtzeit-container {
+    text-align: right;
+    padding: 0.75rem;
+}
+
+.fallzahl-wert,
+.gesamtzeit-gesamtwert {
+    color: var(--primary-color);
+    font-weight: 600;
+    display: inline-block;
+    min-width: 2em;
+    text-align: center;
+}
+
+/* Aktions-Spalte */
+.actions {
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* Status-spezifische Zeilen */
+.table tr.success {
+    background-color: rgba(46, 204, 113, 0.1);
+}
+
+.table tr.warning {
+    background-color: rgba(241, 196, 15, 0.1);
+}
+
+.table tr.error {
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+/* Beendete Therapie */
+.table tr.therapy-ended {
+    opacity: 0.7;
+}
+
+.table tr.therapy-ended td {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+    .table-wrapper {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+        width: calc(100% + 2rem);
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem;
+    }
+    
+    .table .hour {
+        width: 25px;
+        height: 25px;
+    }
+}
+
+/* Basis-Definition für Stundenfelder */
+.hour {
+    display: block;
+    width: 25px;
+    height: 25px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 auto;
+}
+
+/* Aktiver Zustand */
+.hour.active {
+    background-color: var(--primary-color);
+}
+
+/* Automatisch fortgeschriebene Stunden */
+.hour.active.auto-continued {
+    background-color: var(--success-color);
+}
+
+/* Hover-Effekt */
+.hour:hover {
+    border-color: var(--primary-color);
+}
