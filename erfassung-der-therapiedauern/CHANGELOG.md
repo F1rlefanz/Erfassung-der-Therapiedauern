@@ -5,6 +5,31 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.0] - 2026-07-16 — Action Cycle 3: Routing, Persistenz & Dashboard
+
+### Added
+- **Routing (React Router):** `BrowserRouter` mit Routen `/` (Dashboard),
+  `/erfassung`, `/statistik`, `/settings` und Fallback-Redirect. Unbekannte
+  Pfade leiten auf das Dashboard.
+- **Hauptnavigation (Sidebar)** im Corporate Design mit aktivem Zustand
+  (`NavLink`) und Inline-SVG-Icons (keine Icon-Library-Dependency); auf schmalen
+  Viewports als horizontale Leiste.
+- **Zustand-Persistenz via IndexedDB:** `persist`-Middleware mit `idb-keyval`
+  als custom Storage-Engine (`src/lib/idbStorage.ts`). Umgeht das 5-MB-Limit von
+  `localStorage`; dient als Offline-Cache/Brücke bis zur BaaS-Anbindung. Nur der
+  fachliche Zustand wird persistiert (`partialize`), nicht der Paint-Zustand.
+- **Dashboard (`/`):** Schnellzugriff-Karten zu den übrigen Routen und eine
+  „Aktuelle Übersicht", die live aus dem Store zieht (erfasste Therapien heute,
+  Therapiestunden, Patienten, letzte Aktualisierung).
+- **Platzhalter-Views** für Statistik und Einstellungen (`PlaceholderView`).
+- **Tests:** Round-Trip-Test der IndexedDB-Brücke; `fake-indexeddb` als
+  Test-Umgebung, damit die Persistenz ohne Browser läuft.
+
+### Changed
+- `App.tsx` ist jetzt die Layout-Shell (Sidebar + Routen + Footer); die frühere
+  direkte Einbindung der `TherapyTable` wandert in `ErfassungPage`.
+- `todayISO` nach `src/lib/date.ts` ausgelagert (geteilt von Store und Dashboard).
+
 ## [0.1.0] - 2026-07-16 — Action Cycle 2: Corporate Design & State-Management
 
 ### Added

@@ -1,5 +1,8 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import type { Patient, TherapyRecord, TherapyType } from '../types'
+import { idbStorage } from '../lib/idbStorage'
+import { todayISO } from '../lib/date'
 
 /** Anzahl Stunden pro Tag (Index 0–23). */
 export const HOURS_PER_DAY = 24
@@ -7,15 +10,6 @@ export const HOURS_PER_DAY = 24
 /** Leeres 24-Stunden-Array (alle Stunden inaktiv). */
 function emptyHours(): boolean[] {
   return Array<boolean>(HOURS_PER_DAY).fill(false)
-}
-
-/** Aktuelles Datum als YYYY-MM-DD (lokale Zeitzone). */
-function todayISO(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
 }
 
 function newId(): string {
@@ -87,84 +81,99 @@ interface TherapyState {
   endPaint: () => void
 }
 
-export const useTherapyStore = create<TherapyState>((set) => ({
-  selectedDate: todayISO(),
-  patients: [],
-  therapyRecords: [],
+export const useTherapyStore = create<TherapyState>()(
+  persist(
+    (set) => ({
+      selectedDate: todayISO(),
+      patients: [],
+      therapyRecords: [],
 
-  isPainting: false,
-  paintValue: true,
-  paintTarget: null,
+      isPainting: false,
+      paintValue: true,
+      paintTarget: null,
 
-  setSelectedDate: (date) => set({ selectedDate: date }),
+      setSelectedDate: (date) => set({ selectedDate: date }),
 
-  addPatient: (name, caseNumber) =>
-    set((state) => ({
-      patients: [
-        ...state.patients,
-        { id: newId(), name: name.trim(), caseNumber: caseNumber.trim() },
-      ],
-    })),
+      addPatient: (name, caseNumber) =>
+        set((state) => ({
+          patients: [
+            ...state.patients,
+            { id: newId(), name: name.trim(), caseNumber: caseNumber.trim() },
+          ],
+        })),
 
-  toggleHour: (patientId, therapyType, hourIndex) =>
-    set((state) => {
-      const current = getHours(state, patientId, therapyType)[hourIndex]
-      return {
-        therapyRecords: applyHour(
-          state.therapyRecords,
-          patientId,
-          state.selectedDate,
-          therapyType,
-          hourIndex,
-          !current,
-        ),
-      }
+      toggleHour: (patientId, therapyType, hourIndex) =>
+        set((state) => {
+          const current = getHours(state, patientId, therapyType)[hourIndex]
+          return {
+            therapyRecords: applyHour(
+              state.therapyRecords,
+              patientId,
+              state.selectedDate,
+              therapyType,
+              hourIndex,
+              !current,
+            ),
+          }
+        }),
+
+      startPaint: (patientId, therapyType, hourIndex) =>
+        set((state) => {
+          const current = getHours(state, patientId, therapyType)[hourIndex]
+          const paintValue = !current // Startzelle bestimmt: füllen oder löschen
+          return {
+            isPainting: true,
+            paintValue,
+            paintTarget: { patientId, therapyType },
+            therapyRecords: applyHour(
+              state.therapyRecords,
+              patientId,
+              state.selectedDate,
+              therapyType,
+              hourIndex,
+              paintValue,
+            ),
+          }
+        }),
+
+      paintOver: (patientId, therapyType, hourIndex) =>
+        set((state) => {
+          // Nur malen, solange gedrückt wird UND in derselben Zeile begonnen wurde.
+          if (
+            !state.isPainting ||
+            !state.paintTarget ||
+            state.paintTarget.patientId !== patientId ||
+            state.paintTarget.therapyType !== therapyType
+          ) {
+            return {}
+          }
+          return {
+            therapyRecords: applyHour(
+              state.therapyRecords,
+              patientId,
+              state.selectedDate,
+              therapyType,
+              hourIndex,
+              state.paintValue,
+            ),
+          }
+        }),
+
+      endPaint: () => set({ isPainting: false, paintTarget: null }),
     }),
-
-  startPaint: (patientId, therapyType, hourIndex) =>
-    set((state) => {
-      const current = getHours(state, patientId, therapyType)[hourIndex]
-      const paintValue = !current // Startzelle bestimmt: füllen oder löschen
-      return {
-        isPainting: true,
-        paintValue,
-        paintTarget: { patientId, therapyType },
-        therapyRecords: applyHour(
-          state.therapyRecords,
-          patientId,
-          state.selectedDate,
-          therapyType,
-          hourIndex,
-          paintValue,
-        ),
-      }
-    }),
-
-  paintOver: (patientId, therapyType, hourIndex) =>
-    set((state) => {
-      // Nur malen, solange gedrückt wird UND in derselben Zeile begonnen wurde.
-      if (
-        !state.isPainting ||
-        !state.paintTarget ||
-        state.paintTarget.patientId !== patientId ||
-        state.paintTarget.therapyType !== therapyType
-      ) {
-        return {}
-      }
-      return {
-        therapyRecords: applyHour(
-          state.therapyRecords,
-          patientId,
-          state.selectedDate,
-          therapyType,
-          hourIndex,
-          state.paintValue,
-        ),
-      }
-    }),
-
-  endPaint: () => set({ isPainting: false, paintTarget: null }),
-}))
+    {
+      name: 'therapy-store',
+      storage: createJSONStorage(() => idbStorage),
+      // Nur den fachlichen Zustand persistieren — der ephemere Paint-Zustand
+      // (isPainting/paintValue/paintTarget) gehört nicht in den Cache.
+      partialize: (state) => ({
+        selectedDate: state.selectedDate,
+        patients: state.patients,
+        therapyRecords: state.therapyRecords,
+      }),
+    },
+  ),
+)
 
 /**
  * Liest das 24-Stunden-Array für (Patient, Therapieart) am aktuell gewählten
