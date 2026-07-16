@@ -1,5 +1,8 @@
 # --- Interne Arbeits-/Scratch-Dateien (nicht auf GitHub) ---
-#..Projektdateien/
+# Claude-interne Analyse-/Arbeitsdokumente. Hinweis: der Ordner
+# ..Projektdateien/.legacy-source/ bleibt bewusst getrackt (Cloud-Lesezugriff),
+# nur claude_docs/ wird ignoriert.
+..Projektdateien/claude_docs/
 
 # --- Dependencies ---
 node_modules/
