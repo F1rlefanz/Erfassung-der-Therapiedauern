@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react'
-import { useTherapyStore } from '../store/therapyStore'
-import { availableYears, MONTH_SHORT } from '../lib/statistics'
-import { buildIcuRow, buildImcRow, type IcuRow, type ImcRow } from '../lib/severity/severityStats'
-import { severityId, type SeverityUnit } from '../lib/severity/types'
-import { tissPerCase, ventPercentage, avgVentDuration } from '../lib/severity/severityStats'
-import { formatDateDE, todayISO } from '../lib/date'
-import YearSelector from '../components/statistik/YearSelector'
-import SeverityInput from '../components/statistik/SeverityInput'
+import { useMemo } from 'react'
+import { useTherapyStore } from '../../store/therapyStore'
+import { MONTH_SHORT } from '../../lib/statistics'
+import {
+  avgVentDuration,
+  buildIcuRow,
+  buildImcRow,
+  tissPerCase,
+  ventPercentage,
+  type IcuRow,
+  type ImcRow,
+} from '../../lib/severity/severityStats'
+import { severityId, type SeverityUnit } from '../../lib/severity/types'
+import SeverityInput from './SeverityInput'
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
@@ -14,31 +19,26 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 const int = (n: number) => String(n)
 const dec = (n: number) => n.toFixed(1)
 
-function StatistikPage() {
+/**
+ * ICU- und IMC-Schweregradtabellen für ein Jahr. Berechnete Spalten kommen aus
+ * den TherapyRecords, die manuellen Felder (Fälle / TISS-28) aus dem Store
+ * (optimistic + debounced Sync).
+ */
+function SeverityTables({ year }: { year: number }) {
   const records = useTherapyStore((s) => s.therapyRecords)
   const severityStats = useTherapyStore((s) => s.severityStats)
-  const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
   const setSeverityInput = useTherapyStore((s) => s.setSeverityInput)
 
-  const today = todayISO()
-  const currentYear = Number(today.slice(0, 4))
-  const [selectedYear, setSelectedYear] = useState(currentYear)
-  const years = useMemo(
-    () => availableYears(records, monthlyHistory, currentYear),
-    [records, monthlyHistory, currentYear],
-  )
-
-  // Nachschlage-Map für manuelle Werte (Fälle / TISS) je (Monat, Station).
   const manual = useMemo(() => {
     const map = new Map<string, { cases: number; tissPoints: number }>()
     for (const s of severityStats) map.set(s.id, { cases: s.cases, tissPoints: s.tissPoints })
     return (month: number, unit: SeverityUnit) =>
-      map.get(severityId(selectedYear, month, unit)) ?? { cases: 0, tissPoints: 0 }
-  }, [severityStats, selectedYear])
+      map.get(severityId(year, month, unit)) ?? { cases: 0, tissPoints: 0 }
+  }, [severityStats, year])
 
   const icuRows = useMemo(
-    () => MONTHS.map((m) => buildIcuRow(records, selectedYear, m, manual(m, 'ICU').cases, manual(m, 'ICU').tissPoints)),
-    [records, selectedYear, manual],
+    () => MONTHS.map((m) => buildIcuRow(records, year, m, manual(m, 'ICU').cases, manual(m, 'ICU').tissPoints)),
+    [records, year, manual],
   )
   const imcRows = useMemo(
     () => MONTHS.map((m) => buildImcRow(m, manual(m, 'IMC').cases, manual(m, 'IMC').tissPoints)),
@@ -47,28 +47,16 @@ function StatistikPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Schweregradstatistik</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            ICU (Intensivstation 10) & Operative IMC · Stand {formatDateDE(today)}
-          </p>
-        </div>
-        <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
-      </header>
-
       <IcuTable
         rows={icuRows}
-        year={selectedYear}
-        onInput={(month, field, value) => setSeverityInput(selectedYear, month, 'ICU', field, value)}
+        year={year}
+        onInput={(month, field, value) => setSeverityInput(year, month, 'ICU', field, value)}
       />
-
       <ImcTable
         rows={imcRows}
-        year={selectedYear}
-        onInput={(month, field, value) => setSeverityInput(selectedYear, month, 'IMC', field, value)}
+        year={year}
+        onInput={(month, field, value) => setSeverityInput(year, month, 'IMC', field, value)}
       />
-
       <p className="text-xs text-ink-muted">
         Fälle und TISS-28-Punkte werden manuell erfasst und automatisch mit dem lokalen Server
         synchronisiert. Alle übrigen Spalten werden aus den erfassten Therapiedaten berechnet.
@@ -101,7 +89,7 @@ function IcuTable({ rows, year, onInput }: IcuTableProps) {
   )
 
   return (
-    <section className="rounded-md border border-line bg-surface p-5">
+    <section className="print-avoid-break rounded-md border border-line bg-surface p-5">
       <h2 className="text-base font-semibold text-ink">ICU — Intensivstation 10</h2>
       <p className="mt-1 text-sm text-ink-muted">Beatmung, CRRT & ECMO je Monat ({year})</p>
 
@@ -180,7 +168,7 @@ function ImcTable({ rows, year, onInput }: ImcTableProps) {
   const totalTiss = rows.reduce((a, r) => a + r.tissPoints, 0)
 
   return (
-    <section className="rounded-md border border-line bg-surface p-5">
+    <section className="print-avoid-break rounded-md border border-line bg-surface p-5">
       <h2 className="text-base font-semibold text-ink">IMC — Operative IMC</h2>
       <p className="mt-1 text-sm text-ink-muted">Manuelle Fälle & TISS-28 je Monat ({year})</p>
 
@@ -222,4 +210,4 @@ function ImcTable({ rows, year, onInput }: ImcTableProps) {
   )
 }
 
-export default StatistikPage
+export default SeverityTables

@@ -5,6 +5,25 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.12.0] - 2026-07-16 — Action Cycle 13: IA-Refactoring (Visuell vs. Tabellarisch)
+
+### Changed
+- **Routen umbenannt & fachlich getrennt** nach „Visuell vs. Tabellarisch":
+  - `/hochrechnungen` → **`/analysen`** (Sidebar „Analysen & Graphen",
+    Lucide `bar-chart-3`).
+  - `/statistik` → **`/reporting`** (Sidebar „Reporting & Controlling",
+    Lucide `table`).
+- **`/analysen`** enthält nur noch die visuellen Elemente: Jahr-Dropdown,
+  KPI-Karten, Prognose-Toggle und die Charts (ComposedChart + Verteilung).
+  Detailtabelle und CSV/PDF-Export wurden entfernt.
+- **`/reporting`** bündelt alle Tabellen mit einer Tab-Navigation (CSJR-
+  Border-Bottom-Tabs): Tab **„Schweregrad"** (ICU/IMC) und Tab **„MDK-Export"**
+  (Detailtabelle + CSV/PDF). Das Jahr-Dropdown filtert die ganze Seite.
+  Beim Drucken wird nur der aktive Tab gerendert; die Tab-Leiste ist `no-print`.
+- **Dateien reorganisiert**: `components/analysen/` (ProjectionToggle),
+  `components/reporting/` (DetailTable, SeverityInput, SeverityTables),
+  geteilter `components/YearSelector`; Seiten `AnalysenPage`/`ReportingPage`.
+
 ## [0.11.0] - 2026-07-16 — Action Cycle 12: Routing-Split & Schweregradstatistik (ICU/IMC)
 
 ### Added

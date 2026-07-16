@@ -3,13 +3,13 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import DashboardPage from './pages/DashboardPage'
 import ErfassungPage from './pages/ErfassungPage'
-import StatistikPage from './pages/StatistikPage'
+import ReportingPage from './pages/ReportingPage'
 import SettingsPage from './pages/SettingsPage'
 import { useTherapyStore } from './store/therapyStore'
 
-// Hochrechnungen lädt recharts nach — nur beim Aufruf (Code-Splitting), damit
-// der Initial-Load schlank bleibt.
-const HochrechnungenPage = lazy(() => import('./pages/HochrechnungenPage'))
+// Analysen lädt recharts nach — nur beim Aufruf (Code-Splitting), damit der
+// Initial-Load schlank bleibt.
+const AnalysenPage = lazy(() => import('./pages/AnalysenPage'))
 
 function App() {
   // Verbindung zum lokalen On-Premise-Server aufbauen (Socket.io) und beim
@@ -28,8 +28,8 @@ function App() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/erfassung" element={<ErfassungPage />} />
-              <Route path="/statistik" element={<StatistikPage />} />
-              <Route path="/hochrechnungen" element={<HochrechnungenPage />} />
+              <Route path="/reporting" element={<ReportingPage />} />
+              <Route path="/analysen" element={<AnalysenPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

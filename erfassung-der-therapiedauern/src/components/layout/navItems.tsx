@@ -48,27 +48,30 @@ export const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    to: '/statistik',
-    label: 'Statistik',
-    description: 'Schweregradstatistik (ICU / IMC)',
+    to: '/analysen',
+    label: 'Analysen & Graphen',
+    description: 'Monatswerte, Jahresvergleich & Prognosen',
     icon: (
+      // lucide: bar-chart-3
       <svg {...svg} aria-hidden="true">
         <path d="M3 3v18h18" />
-        <path d="M7 15v3" />
-        <path d="M12 10v8" />
-        <path d="M17 6v12" />
+        <path d="M18 17V9" />
+        <path d="M13 17V5" />
+        <path d="M8 17v-3" />
       </svg>
     ),
   },
   {
-    to: '/hochrechnungen',
-    label: 'Hochrechnungen',
-    description: 'Monatswerte, Jahresvergleich & Prognosen',
+    to: '/reporting',
+    label: 'Reporting & Controlling',
+    description: 'Schweregradstatistik & MDK-Export',
     icon: (
-      // lucide: trending-up
+      // lucide: table
       <svg {...svg} aria-hidden="true">
-        <path d="M16 7h6v6" />
-        <path d="m22 7-8.5 8.5-5-5L2 17" />
+        <path d="M12 3v18" />
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M3 9h18" />
+        <path d="M3 15h18" />
       </svg>
     ),
   },

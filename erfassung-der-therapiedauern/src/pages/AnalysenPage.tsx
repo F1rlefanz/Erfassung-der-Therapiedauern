@@ -20,13 +20,11 @@ import type { ProjectionModel } from '../lib/projections/types'
 import { availableYears, buildMonthlyComparison, buildYearProjection, FORECAST_SUFFIX } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
-import ProjectionToggle from '../components/statistik/ProjectionToggle'
-import YearSelector from '../components/statistik/YearSelector'
-import DetailTable from '../components/statistik/DetailTable'
+import ProjectionToggle from '../components/analysen/ProjectionToggle'
+import YearSelector from '../components/YearSelector'
 
-function HochrechnungenPage() {
+function AnalysenPage() {
   const records = useTherapyStore((s) => s.therapyRecords)
-  const patients = useTherapyStore((s) => s.patients)
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
 
   const today = todayISO()
@@ -76,16 +74,12 @@ function HochrechnungenPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Hochrechnungen</h1>
+          <h1 className="text-2xl font-semibold text-ink">Analysen &amp; Graphen</h1>
           <p className="mt-1 text-sm text-ink-muted">
             Monatswerte, Jahresvergleich & Prognosen · Stand {formatDateDE(today)}
           </p>
-          {/* Nur im Druck sichtbar — nennt das Berichtsjahr, da der Selector nicht druckt. */}
-          <p className="print-only mt-1 text-sm font-medium text-ink">Berichtsjahr {selectedYear}</p>
         </div>
-        <div className="no-print">
-          <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
-        </div>
+        <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -95,7 +89,7 @@ function HochrechnungenPage() {
       </section>
 
       {/* Beatmungstage je Monat — Jahresvergleich (nicht kumuliert) */}
-      <section className="no-print rounded-md border border-line bg-surface p-5">
+      <section className="rounded-md border border-line bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-ink">
@@ -181,7 +175,7 @@ function HochrechnungenPage() {
       </section>
 
       {/* Verteilung der Therapiearten (gewähltes Jahr) */}
-      <section className="no-print rounded-md border border-line bg-surface p-5">
+      <section className="rounded-md border border-line bg-surface p-5">
         <h2 className="text-base font-semibold text-ink">Verteilung der Therapiearten</h2>
         <p className="mt-1 text-sm text-ink-muted">
           Aktive Tage (mit mindestens einer Stunde) je Therapieart · {selectedYear}
@@ -226,9 +220,6 @@ function HochrechnungenPage() {
           </p>
         )}
       </section>
-
-      {/* Detailauswertung je Patient + Exporte (druckbar) */}
-      <DetailTable patients={patients} records={yearRecords} year={selectedYear} />
     </div>
   )
 }
@@ -279,4 +270,4 @@ function MonthlyTooltip({
   )
 }
 
-export default HochrechnungenPage
+export default AnalysenPage
