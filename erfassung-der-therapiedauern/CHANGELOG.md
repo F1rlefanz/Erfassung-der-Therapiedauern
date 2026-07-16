@@ -5,6 +5,34 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.3.1] - 2026-07-16 — Action Cycle 4.1: On-Premise-Architektur (Node + SQLite + Socket.io)
+
+Strategiewechsel: Wegen DSGVO (klinische Patientendaten) bleiben alle Daten
+on-premise im Krankenhaus-Intranet — kein Cloud-Dienst.
+
+### Added
+- **Lokaler On-Premise-Server** (`server/`, Monorepo): Express + Socket.io +
+  SQLite (`better-sqlite3`). `server/db.js` (Schema + CRUD), `server/index.js`
+  (empfängt CRUD-Events, persistiert lokal, broadcastet an alle Clients im
+  Intranet). Start via `npm run start:server` (Root-`package.json`).
+- **Client-Sync via Socket.io** (`src/lib/syncClient.ts`): Optimistic Updates —
+  Mutationen schreiben sofort lokal (IndexedDB) und pushen (debounced) an den
+  Server. **Offline-Fallback:** ohne Server bleibt alles lokal; beim Reconnect
+  wird der lokale Bestand nachgereicht. Deterministische Record-IDs sorgen für
+  konfliktfreie Konvergenz.
+- **Backup & Restore** (`/settings`): Export des gesamten Zustand-Stores als
+  `.json` und Import (ersetzen oder zusammenführen).
+- **Sync-Status-Indikator** (Sidebar/Settings): online / offline / verbinde.
+- Offline-First gehärtet: `persist`-Versionierung + Rehydration-Fehlerlogging.
+
+### Changed
+- Datenmodell nutzt deterministische Record-IDs `patientId__date__therapyType`.
+
+### Removed
+- **Supabase/Cloud-BaaS-Ausbau verworfen** (DSGVO-Veto): Die in einem
+  Feature-Branch vorbereitete `@supabase/supabase-js`-Anbindung (Cloud-Postgres +
+  Realtime) wird nicht weiterverfolgt; stattdessen die obige On-Premise-Lösung.
+
 ## [0.2.0] - 2026-07-16 — Action Cycle 3: Routing, Persistenz & Dashboard
 
 ### Added

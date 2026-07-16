@@ -3,9 +3,20 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import type { Patient, TherapyRecord, TherapyType } from '../types'
 import { idbStorage } from '../lib/idbStorage'
 import { todayISO } from '../lib/date'
+import {
+  initSync,
+  isSyncConnected,
+  pushPatientUpsert,
+  pushRecordUpsert,
+  type SyncHandlers,
+  type SyncStatus,
+} from '../lib/syncClient'
 
 /** Anzahl Stunden pro Tag (Index 0–23). */
 export const HOURS_PER_DAY = 24
+
+/** Versionsstempel des Backup-/Persistenz-Formats. */
+export const STORE_VERSION = 1
 
 /** Leeres 24-Stunden-Array (alle Stunden inaktiv). */
 function emptyHours(): boolean[] {
@@ -14,6 +25,22 @@ function emptyHours(): boolean[] {
 
 function newId(): string {
   return crypto.randomUUID()
+}
+
+/**
+ * Deterministische Record-ID aus (Patient, Datum, Therapieart). Dadurch erzeugen
+ * alle Clients dieselbe ID für denselben logischen Record — Sync und Merge über
+ * den lokalen Server konvergieren konfliktfrei per ID (auch nach Offline-Phasen).
+ */
+function recordId(patientId: string, date: string, therapyType: TherapyType): string {
+  return `${patientId}__${date}__${therapyType}`
+}
+
+/** Fügt ein Element per id in eine Liste ein oder ersetzt das vorhandene. */
+function upsertById<T extends { id: string }>(list: T[], item: T): T[] {
+  const idx = list.findIndex((x) => x.id === item.id)
+  if (idx === -1) return [...list, item]
+  return list.map((x, i) => (i === idx ? item : x))
 }
 
 /**
@@ -42,7 +69,14 @@ function applyHour(
     hours[hourIndex] = true
     return [
       ...records,
-      { id: newId(), patientId, date, therapyType, hours, lastUpdatedAt: now },
+      {
+        id: recordId(patientId, date, therapyType),
+        patientId,
+        date,
+        therapyType,
+        hours,
+        lastUpdatedAt: now,
+      },
     ]
   }
 
@@ -61,8 +95,16 @@ interface PaintTarget {
   therapyType: TherapyType
 }
 
+/** Struktur einer Backup-Datei (Export/Import). */
+export interface BackupSnapshot {
+  version: number
+  exportedAt: string
+  patients: Patient[]
+  therapyRecords: TherapyRecord[]
+}
+
 interface TherapyState {
-  // ---- Persistenter Zustand ----
+  // ---- Persistenter Zustand (IndexedDB, offline-first) ----
   selectedDate: string
   patients: Patient[]
   therapyRecords: TherapyRecord[]
@@ -72,18 +114,31 @@ interface TherapyState {
   paintValue: boolean
   paintTarget: PaintTarget | null
 
-  // ---- Actions ----
+  // ---- Sync-Status (Anzeige) ----
+  syncStatus: SyncStatus
+
+  // ---- Lokale Actions (Optimistic Updates) ----
   setSelectedDate: (date: string) => void
   addPatient: (name: string, caseNumber: string) => void
   toggleHour: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   startPaint: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   paintOver: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   endPaint: () => void
+
+  // ---- Sync (lokaler Server via Socket.io) ----
+  startSync: () => () => void
+  mergeRemotePatient: (patient: Patient) => void
+  mergeRemoteRecord: (record: TherapyRecord) => void
+  applyRemoteSnapshot: (snapshot: { patients: Patient[]; records: TherapyRecord[] }) => void
+
+  // ---- Backup & Restore ----
+  exportSnapshot: () => BackupSnapshot
+  importSnapshot: (snapshot: BackupSnapshot, mode: 'replace' | 'merge') => void
 }
 
 export const useTherapyStore = create<TherapyState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       selectedDate: todayISO(),
       patients: [],
       therapyRecords: [],
@@ -92,17 +147,21 @@ export const useTherapyStore = create<TherapyState>()(
       paintValue: true,
       paintTarget: null,
 
+      syncStatus: 'offline',
+
       setSelectedDate: (date) => set({ selectedDate: date }),
 
-      addPatient: (name, caseNumber) =>
-        set((state) => ({
-          patients: [
-            ...state.patients,
-            { id: newId(), name: name.trim(), caseNumber: caseNumber.trim() },
-          ],
-        })),
+      addPatient: (name, caseNumber) => {
+        const patient: Patient = {
+          id: newId(),
+          name: name.trim(),
+          caseNumber: caseNumber.trim(),
+        }
+        set((state) => ({ patients: [...state.patients, patient] }))
+        pushPatientUpsert(patient) // No-op, wenn Server offline
+      },
 
-      toggleHour: (patientId, therapyType, hourIndex) =>
+      toggleHour: (patientId, therapyType, hourIndex) => {
         set((state) => {
           const current = getHours(state, patientId, therapyType)[hourIndex]
           return {
@@ -115,9 +174,11 @@ export const useTherapyStore = create<TherapyState>()(
               !current,
             ),
           }
-        }),
+        })
+        scheduleRecordPush(patientId, get().selectedDate, therapyType)
+      },
 
-      startPaint: (patientId, therapyType, hourIndex) =>
+      startPaint: (patientId, therapyType, hourIndex) => {
         set((state) => {
           const current = getHours(state, patientId, therapyType)[hourIndex]
           const paintValue = !current // Startzelle bestimmt: füllen oder löschen
@@ -134,9 +195,12 @@ export const useTherapyStore = create<TherapyState>()(
               paintValue,
             ),
           }
-        }),
+        })
+        scheduleRecordPush(patientId, get().selectedDate, therapyType)
+      },
 
-      paintOver: (patientId, therapyType, hourIndex) =>
+      paintOver: (patientId, therapyType, hourIndex) => {
+        let mutated = false
         set((state) => {
           // Nur malen, solange gedrückt wird UND in derselben Zeile begonnen wurde.
           if (
@@ -147,6 +211,7 @@ export const useTherapyStore = create<TherapyState>()(
           ) {
             return {}
           }
+          mutated = true
           return {
             therapyRecords: applyHour(
               state.therapyRecords,
@@ -157,23 +222,130 @@ export const useTherapyStore = create<TherapyState>()(
               state.paintValue,
             ),
           }
-        }),
+        })
+        if (mutated) scheduleRecordPush(patientId, get().selectedDate, therapyType)
+      },
 
       endPaint: () => set({ isPainting: false, paintTarget: null }),
+
+      // ---- Sync ----
+
+      startSync: () => {
+        const handlers: SyncHandlers = {
+          onStatusChange: (status) => set({ syncStatus: status }),
+          onInit: (snapshot) => get().applyRemoteSnapshot(snapshot),
+          onPatientUpsert: (patient) => get().mergeRemotePatient(patient),
+          onRecordUpsert: (record) => get().mergeRemoteRecord(record),
+          getLocalSnapshot: () => ({
+            patients: get().patients,
+            records: get().therapyRecords,
+          }),
+        }
+        return initSync(handlers)
+      },
+
+      mergeRemotePatient: (patient) =>
+        set((state) => ({ patients: upsertById(state.patients, patient) })),
+
+      mergeRemoteRecord: (record) =>
+        set((state) => {
+          const existing = state.therapyRecords.find((r) => r.id === record.id)
+          // Älteres Echo darf einen neueren lokalen Stand nicht überschreiben.
+          if (existing && existing.lastUpdatedAt > record.lastUpdatedAt) return {}
+          return { therapyRecords: upsertById(state.therapyRecords, record) }
+        }),
+
+      applyRemoteSnapshot: (snapshot) => {
+        for (const patient of snapshot.patients) get().mergeRemotePatient(patient)
+        for (const record of snapshot.records) get().mergeRemoteRecord(record)
+      },
+
+      // ---- Backup & Restore ----
+
+      exportSnapshot: () => ({
+        version: STORE_VERSION,
+        exportedAt: new Date().toISOString(),
+        patients: get().patients,
+        therapyRecords: get().therapyRecords,
+      }),
+
+      importSnapshot: (snapshot, mode) => {
+        if (mode === 'replace') {
+          set({
+            patients: snapshot.patients,
+            therapyRecords: snapshot.therapyRecords,
+          })
+        } else {
+          set((state) => {
+            let patients = state.patients
+            for (const p of snapshot.patients) patients = upsertById(patients, p)
+            let records = state.therapyRecords
+            for (const r of snapshot.therapyRecords) {
+              const existing = records.find((x) => x.id === r.id)
+              if (existing && existing.lastUpdatedAt > r.lastUpdatedAt) continue
+              records = upsertById(records, r)
+            }
+            return { patients, therapyRecords: records }
+          })
+        }
+        // Importierten Bestand an den Server nachreichen (falls online).
+        for (const p of get().patients) pushPatientUpsert(p)
+        for (const r of get().therapyRecords) pushRecordUpsert(r)
+      },
     }),
     {
       name: 'therapy-store',
+      version: STORE_VERSION,
       storage: createJSONStorage(() => idbStorage),
-      // Nur den fachlichen Zustand persistieren — der ephemere Paint-Zustand
-      // (isPainting/paintValue/paintTarget) gehört nicht in den Cache.
+      // Nur den fachlichen Zustand persistieren — Paint-Zustand und Sync-Status
+      // (isPainting/paintValue/paintTarget/syncStatus) gehören nicht in den Cache.
       partialize: (state) => ({
         selectedDate: state.selectedDate,
         patients: state.patients,
         therapyRecords: state.therapyRecords,
       }),
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.error('[store] Rehydration aus IndexedDB fehlgeschlagen:', error)
+        }
+      },
     },
   ),
 )
+
+// ---------------------------------------------------------------------------
+// Remote-Push (debounced pro Record)
+//
+// Die Paint-UI aktualisiert den lokalen State sofort (Optimistic Update) und
+// schreibt via persist in IndexedDB. Der Push an den lokalen Server wird pro
+// Record gebündelt: Ein Drag über viele Stunden erzeugt so nur einen Push mit
+// dem finalen Stunden-Array. Ist der Server offline, sind die Pushes No-ops und
+// der Reconnect-Sync (getLocalSnapshot) holt es nach.
+// ---------------------------------------------------------------------------
+const RECORD_PUSH_DEBOUNCE_MS = 250
+const recordPushTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function scheduleRecordPush(
+  patientId: string,
+  date: string,
+  therapyType: TherapyType,
+): void {
+  // Ohne Serververbindung nichts einplanen — der Reconnect-Sync reicht den
+  // finalen lokalen Stand ohnehin nach (und Tests erzeugen keine Timer).
+  if (!isSyncConnected()) return
+  const id = recordId(patientId, date, therapyType)
+  const existing = recordPushTimers.get(id)
+  if (existing) clearTimeout(existing)
+  recordPushTimers.set(
+    id,
+    setTimeout(() => {
+      recordPushTimers.delete(id)
+      const latest = useTherapyStore.getState().therapyRecords.find((r) => r.id === id)
+      if (latest) pushRecordUpsert(latest)
+    }, RECORD_PUSH_DEBOUNCE_MS),
+  )
+}
 
 /**
  * Liest das 24-Stunden-Array für (Patient, Therapieart) am aktuell gewählten

@@ -117,4 +117,82 @@ describe('Malen (Drag-to-Paint)', () => {
     s().paintOver(pid, 'beatmung', 6)
     expect(getHours(s(), pid, 'beatmung')[6]).toBe(false)
   })
+
+  it('vergibt deterministische, über Clients konvergierende Record-IDs', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+    const record = s().therapyRecords[0]
+    expect(record.id).toBe(`${pid}__2026-07-16__beatmung`)
+  })
+})
+
+describe('Sync-Merge (Remote-Events)', () => {
+  it('mergt eingehende Records idempotent per id', () => {
+    const pid = addPatient()
+    const hours = Array<boolean>(24).fill(false)
+    hours[10] = true
+    const incoming = {
+      id: `${pid}__2026-07-16__crrt`,
+      patientId: pid,
+      date: '2026-07-16',
+      therapyType: 'crrt' as const,
+      hours,
+      lastUpdatedAt: '2026-07-16T12:00:00.000Z',
+    }
+    s().mergeRemoteRecord(incoming)
+    s().mergeRemoteRecord(incoming) // erneut -> kein Duplikat
+    const crrt = s().therapyRecords.filter((r) => r.therapyType === 'crrt')
+    expect(crrt).toHaveLength(1)
+    expect(getHours(s(), pid, 'crrt')[10]).toBe(true)
+  })
+
+  it('lässt ein älteres Echo einen neueren lokalen Stand nicht überschreiben', () => {
+    const pid = addPatient()
+    const id = `${pid}__2026-07-16__beatmung`
+    const base = {
+      id,
+      patientId: pid,
+      date: '2026-07-16',
+      therapyType: 'beatmung' as const,
+      hours: Array<boolean>(24).fill(true),
+      lastUpdatedAt: '2026-07-16T12:00:00.000Z',
+    }
+    s().mergeRemoteRecord(base)
+    // Älteres Event mit leeren Stunden darf den neueren Stand nicht platt machen.
+    s().mergeRemoteRecord({
+      ...base,
+      hours: Array<boolean>(24).fill(false),
+      lastUpdatedAt: '2026-07-16T11:00:00.000Z',
+    })
+    expect(getHours(s(), pid, 'beatmung').every(Boolean)).toBe(true)
+  })
+})
+
+describe('Backup & Restore', () => {
+  it('exportiert und re-importiert den Bestand (Round-Trip, replace)', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+    const snapshot = s().exportSnapshot()
+    expect(snapshot.patients).toHaveLength(1)
+    expect(snapshot.therapyRecords).toHaveLength(1)
+
+    // Bestand leeren, dann aus dem Snapshot wiederherstellen.
+    useTherapyStore.setState({ patients: [], therapyRecords: [] })
+    s().importSnapshot(snapshot, 'replace')
+    expect(s().patients).toHaveLength(1)
+    expect(getHours(s(), pid, 'beatmung')[8]).toBe(true)
+  })
+
+  it('führt beim Import mit mode=merge zusammen, statt zu ersetzen', () => {
+    const pid = addPatient()
+    const snapshot = s().exportSnapshot() // enthält nur diesen Patienten
+
+    s().addPatient('Zweite, Person', '200500')
+    expect(s().patients).toHaveLength(2)
+
+    s().importSnapshot(snapshot, 'merge')
+    // Der zweite Patient bleibt erhalten, der importierte wird gemerged.
+    expect(s().patients).toHaveLength(2)
+    expect(s().patients.some((p) => p.id === pid)).toBe(true)
+  })
 })

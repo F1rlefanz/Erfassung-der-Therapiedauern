@@ -5,6 +5,7 @@
 ..Projektdateien/claude_docs/
 ..Projektdateien/CSJR Corporate Design für Apps.zip
 ..Projektdateien/CSJR Corporate Design für Apps
+..Projektdateien/Notizen für den PO
 
 # --- Dependencies ---
 node_modules/
@@ -22,6 +23,12 @@ build/
 out/
 .next/
 .vite/
+
+# --- On-Premise-Server: lokale SQLite-Datenbank (nicht einchecken) ---
+server/data/
+*.db
+*.db-shm
+*.db-wal
 
 # --- Test-/Coverage-Artefakte ---
 coverage/

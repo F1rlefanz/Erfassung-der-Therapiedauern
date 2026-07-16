@@ -1,11 +1,18 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import DashboardPage from './pages/DashboardPage'
 import ErfassungPage from './pages/ErfassungPage'
 import StatistikPage from './pages/StatistikPage'
 import SettingsPage from './pages/SettingsPage'
+import { useTherapyStore } from './store/therapyStore'
 
 function App() {
+  // Verbindung zum lokalen On-Premise-Server aufbauen (Socket.io) und beim
+  // Unmount wieder trennen. Ohne laufenden Server bleibt die App voll
+  // funktionsfähig (offline-first) und synchronisiert beim Reconnect.
+  useEffect(() => useTherapyStore.getState().startSync(), [])
+
   return (
     <div className="flex min-h-svh flex-col bg-bg sm:flex-row">
       <Sidebar />
