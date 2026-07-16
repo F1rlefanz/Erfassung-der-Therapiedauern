@@ -46,6 +46,9 @@ io.on('connection', (socket) => {
   // Monatsaggregate für die Prognose-Engine (kompakt, kein Rohdatensatz).
   socket.emit('aggregates:monthly-ventilation', db.getMonthlyVentilationAggregates())
 
+  // Manuelle Schweregrad-Kennzahlen (Fälle / TISS-28).
+  socket.emit('sync:severity_stats', db.getAllSeverityStats())
+
   socket.on('patient:upsert', (patient) => {
     try {
       db.upsertPatient(patient)
@@ -62,6 +65,15 @@ io.on('connection', (socket) => {
       socket.broadcast.emit('record:upsert', record)
     } catch (err) {
       console.error('[server] record:upsert fehlgeschlagen:', err.message)
+    }
+  })
+
+  socket.on('severity_stat:upsert', (stat) => {
+    try {
+      db.upsertSeverityStat(stat)
+      socket.broadcast.emit('severity_stat:upsert', stat)
+    } catch (err) {
+      console.error('[server] severity_stat:upsert fehlgeschlagen:', err.message)
     }
   })
 

@@ -35,6 +35,16 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS therapy_records_patient_date_idx
     ON therapy_records (patient_id, date);
+
+  -- Manuell erfasste Schweregrad-Kennzahlen je (Jahr, Monat, Station).
+  CREATE TABLE IF NOT EXISTS severity_stats (
+    id          TEXT PRIMARY KEY,
+    year        INTEGER NOT NULL,
+    month       INTEGER NOT NULL,
+    unit        TEXT NOT NULL,
+    cases       INTEGER NOT NULL DEFAULT 0,
+    tiss_points INTEGER NOT NULL DEFAULT 0
+  );
 `)
 
 // ---- Mapper: DB-Row <-> Wire-Modell (camelCase, wie im Client) ----
@@ -138,6 +148,43 @@ function getMonthlyVentilationAggregates() {
   })
 }
 
+// ---- Schweregrad-Kennzahlen (manuelle Eingaben) ----
+
+const stmtAllSeverity = db.prepare('SELECT * FROM severity_stats')
+const stmtUpsertSeverity = db.prepare(`
+  INSERT INTO severity_stats (id, year, month, unit, cases, tiss_points)
+  VALUES (@id, @year, @month, @unit, @cases, @tissPoints)
+  ON CONFLICT(id) DO UPDATE SET
+    cases       = excluded.cases,
+    tiss_points = excluded.tiss_points
+`)
+
+function rowToSeverity(row) {
+  return {
+    id: row.id,
+    year: row.year,
+    month: row.month,
+    unit: row.unit,
+    cases: row.cases,
+    tissPoints: row.tiss_points,
+  }
+}
+
+function getAllSeverityStats() {
+  return stmtAllSeverity.all().map(rowToSeverity)
+}
+
+function upsertSeverityStat(stat) {
+  stmtUpsertSeverity.run({
+    id: stat.id,
+    year: stat.year,
+    month: stat.month,
+    unit: stat.unit,
+    cases: stat.cases,
+    tissPoints: stat.tissPoints,
+  })
+}
+
 /** Leert beide Tabellen (für den deterministischen Seeder / Clean Slate). */
 function clearAll() {
   db.exec('DELETE FROM therapy_records; DELETE FROM patients;')
@@ -155,6 +202,8 @@ module.exports = {
   upsertPatient,
   upsertRecord,
   getMonthlyVentilationAggregates,
+  getAllSeverityStats,
+  upsertSeverityStat,
   clearAll,
   bulkWrite,
 }

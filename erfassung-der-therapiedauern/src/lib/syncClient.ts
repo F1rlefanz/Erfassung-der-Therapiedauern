@@ -1,6 +1,7 @@
 import { io, type Socket } from 'socket.io-client'
 import type { Patient, TherapyRecord } from '../types'
 import type { MonthlyAggregate } from './projections/types'
+import type { SeverityStat } from './severity/types'
 
 /**
  * Socket.io-Anbindung an den lokalen On-Premise-Server (Intranet).
@@ -18,13 +19,21 @@ const SERVER_URL =
 
 export type SyncStatus = 'connecting' | 'online' | 'offline'
 
+export interface LocalSnapshot {
+  patients: Patient[]
+  records: TherapyRecord[]
+  severityStats: SeverityStat[]
+}
+
 export interface SyncHandlers {
   onInit: (snapshot: { patients: Patient[]; records: TherapyRecord[] }) => void
   onPatientUpsert: (patient: Patient) => void
   onRecordUpsert: (record: TherapyRecord) => void
   onMonthlyAggregates: (aggregates: MonthlyAggregate[]) => void
+  onSeverityInit: (stats: SeverityStat[]) => void
+  onSeverityUpsert: (stat: SeverityStat) => void
   onStatusChange: (status: SyncStatus) => void
-  getLocalSnapshot: () => { patients: Patient[]; records: TherapyRecord[] }
+  getLocalSnapshot: () => LocalSnapshot
 }
 
 let socket: Socket | null = null
@@ -40,6 +49,7 @@ export function initSync(handlers: SyncHandlers): () => void {
     const snapshot = handlers.getLocalSnapshot()
     for (const patient of snapshot.patients) s.emit('patient:upsert', patient)
     for (const record of snapshot.records) s.emit('record:upsert', record)
+    for (const stat of snapshot.severityStats) s.emit('severity_stat:upsert', stat)
   })
   s.on('disconnect', () => handlers.onStatusChange('offline'))
   s.on('connect_error', () => handlers.onStatusChange('offline'))
@@ -48,6 +58,8 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('patient:upsert', handlers.onPatientUpsert)
   s.on('record:upsert', handlers.onRecordUpsert)
   s.on('aggregates:monthly-ventilation', handlers.onMonthlyAggregates)
+  s.on('sync:severity_stats', handlers.onSeverityInit)
+  s.on('severity_stat:upsert', handlers.onSeverityUpsert)
 
   return () => {
     s.disconnect()
@@ -66,4 +78,8 @@ export function pushPatientUpsert(patient: Patient): void {
 
 export function pushRecordUpsert(record: TherapyRecord): void {
   if (socket?.connected) socket.emit('record:upsert', record)
+}
+
+export function pushSeverityUpsert(stat: SeverityStat): void {
+  if (socket?.connected) socket.emit('severity_stat:upsert', stat)
 }

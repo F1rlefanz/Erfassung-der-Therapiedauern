@@ -1,281 +1,224 @@
 import { useMemo, useState } from 'react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ComposedChart,
-  LabelList,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { useTherapyStore } from '../store/therapyStore'
-import { THERAPY_TYPES } from '../lib/therapyTypes'
-import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
-import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
-import type { ProjectionModel } from '../lib/projections/types'
-import { availableYears, buildMonthlyComparison, buildYearProjection, FORECAST_SUFFIX } from '../lib/statistics'
+import { availableYears, MONTH_SHORT } from '../lib/statistics'
+import { buildIcuRow, buildImcRow, type IcuRow, type ImcRow } from '../lib/severity/severityStats'
+import { severityId, type SeverityUnit } from '../lib/severity/types'
+import { tissPerCase, ventPercentage, avgVentDuration } from '../lib/severity/severityStats'
 import { formatDateDE, todayISO } from '../lib/date'
-import StatTile from '../components/StatTile'
-import ProjectionToggle from '../components/statistik/ProjectionToggle'
 import YearSelector from '../components/statistik/YearSelector'
-import DetailTable from '../components/statistik/DetailTable'
+import SeverityInput from '../components/statistik/SeverityInput'
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
+
+/** Ganzzahl anzeigen; Kommazahl mit einer Nachkommastelle. */
+const int = (n: number) => String(n)
+const dec = (n: number) => n.toFixed(1)
 
 function StatistikPage() {
   const records = useTherapyStore((s) => s.therapyRecords)
-  const patients = useTherapyStore((s) => s.patients)
+  const severityStats = useTherapyStore((s) => s.severityStats)
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
+  const setSeverityInput = useTherapyStore((s) => s.setSeverityInput)
 
   const today = todayISO()
   const currentYear = Number(today.slice(0, 4))
-
-  const [model, setModel] = useState<ProjectionModel>('seasonal')
   const [selectedYear, setSelectedYear] = useState(currentYear)
-
   const years = useMemo(
     () => availableYears(records, monthlyHistory, currentYear),
     [records, monthlyHistory, currentYear],
   )
-  const isCurrentYear = selectedYear === currentYear
-  const overlayYears = years.filter((y) => y !== selectedYear)
 
-  const yearRecords = useMemo(
-    () => records.filter((r) => r.date.startsWith(`${selectedYear}-`)),
-    [records, selectedYear],
+  // Nachschlage-Map für manuelle Werte (Fälle / TISS) je (Monat, Station).
+  const manual = useMemo(() => {
+    const map = new Map<string, { cases: number; tissPoints: number }>()
+    for (const s of severityStats) map.set(s.id, { cases: s.cases, tissPoints: s.tissPoints })
+    return (month: number, unit: SeverityUnit) =>
+      map.get(severityId(selectedYear, month, unit)) ?? { cases: 0, tissPoints: 0 }
+  }, [severityStats, selectedYear])
+
+  const icuRows = useMemo(
+    () => MONTHS.map((m) => buildIcuRow(records, selectedYear, m, manual(m, 'ICU').cases, manual(m, 'ICU').tissPoints)),
+    [records, selectedYear, manual],
   )
-  const patientsInYear = new Set(yearRecords.map((r) => r.patientId)).size
-
-  const distribution = therapyTypeDistribution(yearRecords)
-  const distributionData = distribution.map((d) => {
-    const meta = THERAPY_TYPES.find((t) => t.type === d.type)
-    return { name: meta?.short ?? d.label, label: d.label, days: d.days, hours: d.hours }
-  })
-  const hasDistributionData = yearRecords.some((r) => r.hours.some(Boolean))
-
-  const weights = useMemo(
-    () => computeSeasonalWeights(monthlyHistory, currentYear),
-    [monthlyHistory, currentYear],
+  const imcRows = useMemo(
+    () => MONTHS.map((m) => buildImcRow(m, manual(m, 'IMC').cases, manual(m, 'IMC').tissPoints)),
+    [manual],
   )
-  const yearEnd = buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights).yearEnd
-  const monthlyData = useMemo(
-    () => buildMonthlyComparison(records, selectedYear, years, currentYear, today, model, weights.weights),
-    [records, selectedYear, years, currentYear, today, model, weights.weights],
-  )
-
-  const infoText =
-    model === 'linear'
-      ? 'Lineare Hochrechnung auf Basis des bisherigen Tagesdurchschnitts — ohne Saisonalität, nur als Vergleich.'
-      : weights.source === 'historical'
-        ? `Basiert auf der historischen Monatsverteilung von ${weights.yearsUsed} Vorjahr${weights.yearsUsed === 1 ? '' : 'en'}.`
-        : 'Klinischer Standard-Fallback (Winter hoch, Sommer niedrig) — noch keine Vorjahresdaten vorhanden.'
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Statistik</h1>
+          <h1 className="text-2xl font-semibold text-ink">Schweregradstatistik</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Auswertung der erfassten Therapiedauern · Stand {formatDateDE(today)}
+            ICU (Intensivstation 10) & Operative IMC · Stand {formatDateDE(today)}
           </p>
-          {/* Nur im Druck sichtbar — nennt das Berichtsjahr, da der Selector nicht druckt. */}
-          <p className="print-only mt-1 text-sm font-medium text-ink">Berichtsjahr {selectedYear}</p>
         </div>
-        <div className="no-print">
-          <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
-        </div>
+        <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3">
-        <StatTile label={`Patienten (${selectedYear})`} value={patientsInYear} />
-        <StatTile label={`Beatmungstage ${selectedYear}`} value={totalVentilationDays(yearRecords)} accent />
-        <StatTile label={`Therapiestunden ${selectedYear}`} value={`${totalTherapyHours(yearRecords)} h`} />
-      </section>
+      <IcuTable
+        rows={icuRows}
+        year={selectedYear}
+        onInput={(month, field, value) => setSeverityInput(selectedYear, month, 'ICU', field, value)}
+      />
 
-      {/* Beatmungstage je Monat — Jahresvergleich (nicht kumuliert) */}
-      <section className="no-print rounded-md border border-line bg-surface p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-ink">
-              Beatmungstage je Monat — Jahresvergleich
-            </h2>
-            <p className="mt-1 text-sm text-ink-muted">
-              Absolute Monatswerte {selectedYear}
-              {overlayYears.length > 0 && ` im Vergleich mit ${overlayYears.join(', ')}`}
-              {isCurrentYear && ' und Prognose für die Restmonate'}
-            </p>
-          </div>
-          {isCurrentYear && <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />}
-        </div>
+      <ImcTable
+        rows={imcRows}
+        year={selectedYear}
+        onInput={(month, field, value) => setSeverityInput(selectedYear, month, 'IMC', field, value)}
+      />
 
-        {isCurrentYear && (
-          <p className="mt-3 text-sm text-ink-muted">
-            Jahresend-Prognose:{' '}
-            <span className="font-semibold text-primary">{Math.round(yearEnd)} Beatmungstage</span>
-          </p>
-        )}
-
-        <div className="mt-4 h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-              <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                axisLine={{ stroke: 'var(--ui-line)' }}
-                tickLine={false}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.06 }} content={<MonthlyTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
-
-              {/* Vorjahre: dezente Linien im Hintergrund */}
-              {overlayYears.map((year, i) => (
-                <Line
-                  key={year}
-                  name={String(year)}
-                  dataKey={String(year)}
-                  stroke="var(--ui-ink-muted)"
-                  strokeWidth={1.5}
-                  strokeOpacity={0.7 - i * 0.2}
-                  strokeDasharray={i === 0 ? undefined : '4 3'}
-                  dot={false}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              ))}
-
-              {/* Gewähltes Jahr: prägnante Balken (Ist) */}
-              <Bar
-                name={`${selectedYear} (Ist)`}
-                dataKey={String(selectedYear)}
-                fill="var(--ui-primary)"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={28}
-                isAnimationActive={false}
-              />
-
-              {/* Prognose für Restmonate: gestrichelte Linie in der Hauptfarbe */}
-              {isCurrentYear && (
-                <Line
-                  name="Prognose"
-                  dataKey={`${selectedYear}${FORECAST_SUFFIX}`}
-                  stroke="var(--ui-primary)"
-                  strokeWidth={2}
-                  strokeDasharray="5 4"
-                  dot={{ r: 2, fill: 'var(--ui-primary)' }}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* Verteilung der Therapiearten (gewähltes Jahr) */}
-      <section className="no-print rounded-md border border-line bg-surface p-5">
-        <h2 className="text-base font-semibold text-ink">Verteilung der Therapiearten</h2>
-        <p className="mt-1 text-sm text-ink-muted">
-          Aktive Tage (mit mindestens einer Stunde) je Therapieart · {selectedYear}
-        </p>
-
-        {hasDistributionData ? (
-          <div className="mt-4 h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={distributionData} margin={{ top: 16, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                  axisLine={{ stroke: 'var(--ui-line)' }}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.08 }}
-                  content={<DistributionTooltip />}
-                />
-                <Bar
-                  dataKey="days"
-                  fill="var(--ui-primary)"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={72}
-                  isAnimationActive={false}
-                >
-                  <LabelList dataKey="days" position="top" fill="var(--ui-ink)" fontSize={12} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <p className="mt-4 rounded-md border border-dashed border-line p-6 text-center text-sm text-ink-muted">
-            Keine Therapiedaten für {selectedYear}.
-          </p>
-        )}
-      </section>
-
-      {/* Detailauswertung je Patient + Exporte (druckbar) */}
-      <DetailTable patients={patients} records={yearRecords} year={selectedYear} />
+      <p className="text-xs text-ink-muted">
+        Fälle und TISS-28-Punkte werden manuell erfasst und automatisch mit dem lokalen Server
+        synchronisiert. Alle übrigen Spalten werden aus den erfassten Therapiedaten berechnet.
+      </p>
     </div>
   )
 }
 
-interface DistTooltip {
-  payload: { label: string; days: number; hours: number }
+// ---- ICU-Tabelle ------------------------------------------------------------
+
+interface IcuTableProps {
+  rows: IcuRow[]
+  year: number
+  onInput: (month: number, field: 'cases' | 'tissPoints', value: number) => void
 }
-function DistributionTooltip({ active, payload }: { active?: boolean; payload?: DistTooltip[] }) {
-  if (!active || !payload?.length) return null
-  const { label, days, hours } = payload[0].payload
+
+function IcuTable({ rows, year, onInput }: IcuTableProps) {
+  const t = rows.reduce(
+    (a, r) => ({
+      cases: a.cases + r.cases,
+      startedVentDays: a.startedVentDays + r.startedVentDays,
+      completeVentDays: a.completeVentDays + r.completeVentDays,
+      ventHours: a.ventHours + r.ventHours,
+      ventPatients: a.ventPatients + r.ventPatients,
+      crrtDays: a.crrtDays + r.crrtDays,
+      ecmoDays: a.ecmoDays + r.ecmoDays,
+      tissPoints: a.tissPoints + r.tissPoints,
+    }),
+    { cases: 0, startedVentDays: 0, completeVentDays: 0, ventHours: 0, ventPatients: 0, crrtDays: 0, ecmoDays: 0, tissPoints: 0 },
+  )
+
   return (
-    <div className="rounded-sm border border-line bg-surface px-3 py-2 text-xs shadow">
-      <div className="font-medium text-ink">{label}</div>
-      <div className="mt-0.5 text-ink-muted">
-        {days} aktive Tage · {hours} h
+    <section className="rounded-md border border-line bg-surface p-5">
+      <h2 className="text-base font-semibold text-ink">ICU — Intensivstation 10</h2>
+      <p className="mt-1 text-sm text-ink-muted">Beatmung, CRRT & ECMO je Monat ({year})</p>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full border-collapse whitespace-nowrap text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-ink-muted">
+              <th className="py-2 pr-3 font-medium">Monat</th>
+              <th className="py-2 pr-3 text-right font-medium">Fälle</th>
+              <th className="py-2 pr-3 text-right font-medium">Beg. Beatm.tage</th>
+              <th className="py-2 pr-3 text-right font-medium">Ganze Beatm.tage</th>
+              <th className="py-2 pr-3 text-right font-medium">Beatm.std total</th>
+              <th className="py-2 pr-3 text-right font-medium">Beatm.pat.</th>
+              <th className="py-2 pr-3 text-right font-medium">Anteil %</th>
+              <th className="py-2 pr-3 text-right font-medium">Ø Beatm.dauer</th>
+              <th className="py-2 pr-3 text-right font-medium">Hämofilt.tage</th>
+              <th className="py-2 pr-3 text-right font-medium">ECMO-Tage</th>
+              <th className="py-2 pr-3 text-right font-medium">TISS-28</th>
+              <th className="py-2 text-right font-medium">TISS/Fall</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.month} className="border-b border-line/60 transition-colors hover:bg-bg">
+                <td className="py-1.5 pr-3 text-ink">{MONTH_SHORT[r.month - 1]}</td>
+                <td className="py-1.5 pr-3 text-right">
+                  <SeverityInput value={r.cases} ariaLabel={`ICU Fälle ${MONTH_SHORT[r.month - 1]}`} onChange={(v) => onInput(r.month, 'cases', v)} />
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.startedVentDays)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.completeVentDays)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.ventHours)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.ventPatients)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink-muted">{dec(r.ventPercentage)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink-muted">{dec(r.avgVentDuration)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.crrtDays)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{int(r.ecmoDays)}</td>
+                <td className="py-1.5 pr-3 text-right">
+                  <SeverityInput value={r.tissPoints} ariaLabel={`ICU TISS-28 ${MONTH_SHORT[r.month - 1]}`} onChange={(v) => onInput(r.month, 'tissPoints', v)} />
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-ink-muted">{dec(r.tissPerCase)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-line font-semibold text-ink">
+              <td className="py-2 pr-3">Summe</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.cases)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.startedVentDays)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.completeVentDays)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.ventHours)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.ventPatients)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{dec(ventPercentage(t.ventPatients, t.cases))}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{dec(avgVentDuration(t.startedVentDays, t.ventPatients))}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.crrtDays)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.ecmoDays)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(t.tissPoints)}</td>
+              <td className="py-2 text-right tabular-nums">{dec(tissPerCase(t.tissPoints, t.cases))}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
-    </div>
+    </section>
   )
 }
 
-interface MonthlyTooltipEntry {
-  name: string
-  value: number | null
-  color: string
+// ---- IMC-Tabelle ------------------------------------------------------------
+
+interface ImcTableProps {
+  rows: ImcRow[]
+  year: number
+  onInput: (month: number, field: 'cases' | 'tissPoints', value: number) => void
 }
-function MonthlyTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: MonthlyTooltipEntry[]
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  const visible = payload.filter((p) => p.value !== null && p.value !== undefined)
-  if (!visible.length) return null
+
+function ImcTable({ rows, year, onInput }: ImcTableProps) {
+  const totalCases = rows.reduce((a, r) => a + r.cases, 0)
+  const totalTiss = rows.reduce((a, r) => a + r.tissPoints, 0)
+
   return (
-    <div className="rounded-sm border border-line bg-surface px-3 py-2 text-xs shadow">
-      <div className="font-medium text-ink">{label}</div>
-      {visible.map((p) => (
-        <div key={p.name} className="mt-0.5 flex items-center gap-1.5 text-ink-muted">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
-          {p.name}: {p.value}
-        </div>
-      ))}
-    </div>
+    <section className="rounded-md border border-line bg-surface p-5">
+      <h2 className="text-base font-semibold text-ink">IMC — Operative IMC</h2>
+      <p className="mt-1 text-sm text-ink-muted">Manuelle Fälle & TISS-28 je Monat ({year})</p>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full max-w-xl border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-ink-muted">
+              <th className="py-2 pr-3 font-medium">Monat</th>
+              <th className="py-2 pr-3 text-right font-medium">Fälle</th>
+              <th className="py-2 pr-3 text-right font-medium">TISS-28</th>
+              <th className="py-2 text-right font-medium">TISS/Fall</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.month} className="border-b border-line/60 transition-colors hover:bg-bg">
+                <td className="py-1.5 pr-3 text-ink">{MONTH_SHORT[r.month - 1]}</td>
+                <td className="py-1.5 pr-3 text-right">
+                  <SeverityInput value={r.cases} ariaLabel={`IMC Fälle ${MONTH_SHORT[r.month - 1]}`} onChange={(v) => onInput(r.month, 'cases', v)} />
+                </td>
+                <td className="py-1.5 pr-3 text-right">
+                  <SeverityInput value={r.tissPoints} ariaLabel={`IMC TISS-28 ${MONTH_SHORT[r.month - 1]}`} onChange={(v) => onInput(r.month, 'tissPoints', v)} />
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-ink-muted">{dec(r.tissPerCase)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-line font-semibold text-ink">
+              <td className="py-2 pr-3">Summe</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(totalCases)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{int(totalTiss)}</td>
+              <td className="py-2 text-right tabular-nums">{dec(tissPerCase(totalTiss, totalCases))}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
   )
 }
 

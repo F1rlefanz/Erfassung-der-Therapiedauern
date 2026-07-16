@@ -5,6 +5,32 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.11.0] - 2026-07-16 — Action Cycle 12: Routing-Split & Schweregradstatistik (ICU/IMC)
+
+### Added
+- **Neue Route `/hochrechnungen`**: alle bisherigen Analytics (Monats-/YoY-
+  `ComposedChart`, Prognose-Toggle, KPI-Karten, MDK-Detailtabelle) von
+  `/statistik` hierher verschoben. Sidebar-Eintrag „Hochrechnungen"
+  (Lucide `trending-up`).
+- **Schweregradstatistik auf `/statistik`** (aus dem Legacy-System nachgebaut):
+  - **ICU (Intensivstation 10)** — 12 Monatszeilen + Summe: berechnete Spalten
+    (begonnene/ganze Beatmungstage, Beatmungsstunden, Beatmungspatienten,
+    Anteil %, Ø Beatmungsdauer, Hämofiltrations-/ECMO-Tage) aus den
+    TherapyRecords, plus manuelle Felder Fälle & TISS-28 und die abgeleitete
+    TISS-28/Fall.
+  - **IMC (Operative IMC)** — 12 Monatszeilen + Summe: manuelle Fälle & TISS-28
+    plus abgeleitete TISS-28/Fall.
+- **Persistenz für manuelle Eingaben** (On-Premise): neue SQLite-Tabelle
+  `severity_stats` (id `year__month__unit`, cases, tiss_points) mit CRUD und
+  Socket.io-Sync (`sync:severity_stats` / `severity_stat:upsert`). Store hält
+  die Werte offline-first (idb-keyval) und pusht debounced an den Server.
+- Reiner Berechnungs-Service `src/lib/severity/severityStats.ts` (ICU-Monats-
+  aggregation + abgeleitete Kennzahlen) mit Unit-Tests.
+
+### Changed
+- Nur noch die Hochrechnungen laden `recharts` nach (Code-Splitting verschoben);
+  `/statistik` (Schweregrad) ist damit leichtgewichtig.
+
 ## [0.10.0] - 2026-07-16 — Action Cycle 11: Gesamtzeiten & Summenzeilen in der Erfassung
 
 ### Added

@@ -8,10 +8,12 @@ import {
   isSyncConnected,
   pushPatientUpsert,
   pushRecordUpsert,
+  pushSeverityUpsert,
   type SyncHandlers,
   type SyncStatus,
 } from '../lib/syncClient'
 import type { MonthlyAggregate } from '../lib/projections/types'
+import { severityId, type SeverityStat, type SeverityUnit } from '../lib/severity/types'
 
 /** Anzahl Stunden pro Tag (Index 0–23). */
 export const HOURS_PER_DAY = 24
@@ -121,6 +123,9 @@ interface TherapyState {
   // ---- Historische Monatsaggregate (für die Prognose-Engine) ----
   monthlyHistory: MonthlyAggregate[]
 
+  // ---- Manuelle Schweregrad-Kennzahlen (Fälle / TISS-28) ----
+  severityStats: SeverityStat[]
+
   // ---- Lokale Actions (Optimistic Updates) ----
   setSelectedDate: (date: string) => void
   addPatient: (name: string, caseNumber: string) => void
@@ -141,6 +146,17 @@ interface TherapyState {
   mergeRemoteRecord: (record: TherapyRecord) => void
   applyRemoteSnapshot: (snapshot: { patients: Patient[]; records: TherapyRecord[] }) => void
 
+  // ---- Schweregrad-Kennzahlen (manuelle Eingaben) ----
+  setSeverityInput: (
+    year: number,
+    month: number,
+    unit: SeverityUnit,
+    field: 'cases' | 'tissPoints',
+    value: number,
+  ) => void
+  mergeRemoteSeverity: (stat: SeverityStat) => void
+  applyRemoteSeveritySnapshot: (stats: SeverityStat[]) => void
+
   // ---- Backup & Restore ----
   exportSnapshot: () => BackupSnapshot
   importSnapshot: (snapshot: BackupSnapshot, mode: 'replace' | 'merge') => void
@@ -159,6 +175,7 @@ export const useTherapyStore = create<TherapyState>()(
 
       syncStatus: 'offline',
       monthlyHistory: [],
+      severityStats: [],
 
       setSelectedDate: (date) => set({ selectedDate: date }),
 
@@ -282,9 +299,12 @@ export const useTherapyStore = create<TherapyState>()(
           onPatientUpsert: (patient) => get().mergeRemotePatient(patient),
           onRecordUpsert: (record) => get().mergeRemoteRecord(record),
           onMonthlyAggregates: (aggregates) => set({ monthlyHistory: aggregates }),
+          onSeverityInit: (stats) => get().applyRemoteSeveritySnapshot(stats),
+          onSeverityUpsert: (stat) => get().mergeRemoteSeverity(stat),
           getLocalSnapshot: () => ({
             patients: get().patients,
             records: get().therapyRecords,
+            severityStats: get().severityStats,
           }),
         }
         return initSync(handlers)
@@ -305,6 +325,30 @@ export const useTherapyStore = create<TherapyState>()(
         for (const patient of snapshot.patients) get().mergeRemotePatient(patient)
         for (const record of snapshot.records) get().mergeRemoteRecord(record)
       },
+
+      // ---- Schweregrad-Kennzahlen ----
+
+      setSeverityInput: (year, month, unit, field, value) => {
+        const id = severityId(year, month, unit)
+        let updated: SeverityStat | undefined
+        set((state) => {
+          const existing = state.severityStats.find((s) => s.id === id)
+          const base: SeverityStat = existing ?? { id, year, month, unit, cases: 0, tissPoints: 0 }
+          updated = { ...base, [field]: Number.isFinite(value) ? Math.max(0, value) : 0 }
+          return { severityStats: upsertById(state.severityStats, updated) }
+        })
+        if (updated) scheduleSeverityPush(updated.id)
+      },
+
+      mergeRemoteSeverity: (stat) =>
+        set((state) => ({ severityStats: upsertById(state.severityStats, stat) })),
+
+      applyRemoteSeveritySnapshot: (stats) =>
+        set((state) => {
+          let merged = state.severityStats
+          for (const stat of stats) merged = upsertById(merged, stat)
+          return { severityStats: merged }
+        }),
 
       // ---- Backup & Restore ----
 
@@ -352,6 +396,8 @@ export const useTherapyStore = create<TherapyState>()(
         // Aggregate mitpersistieren, damit Prognosen auch offline gelernte
         // Gewichte nutzen (nicht nur den ICU-Fallback).
         monthlyHistory: state.monthlyHistory,
+        // Manuelle Schweregrad-Eingaben offline-first mitpersistieren.
+        severityStats: state.severityStats,
       }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
@@ -394,6 +440,39 @@ function scheduleRecordPush(
       if (latest) pushRecordUpsert(latest)
     }, RECORD_PUSH_DEBOUNCE_MS),
   )
+}
+
+// Debounced Push der manuellen Schweregrad-Eingaben (Tippen erzeugt sonst viele
+// Events). Offline No-op; der Reconnect-Sync reicht den Stand nach.
+const severityPushTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function scheduleSeverityPush(id: string): void {
+  if (!isSyncConnected()) return
+  const existing = severityPushTimers.get(id)
+  if (existing) clearTimeout(existing)
+  severityPushTimers.set(
+    id,
+    setTimeout(() => {
+      severityPushTimers.delete(id)
+      const latest = useTherapyStore.getState().severityStats.find((s) => s.id === id)
+      if (latest) pushSeverityUpsert(latest)
+    }, RECORD_PUSH_DEBOUNCE_MS),
+  )
+}
+
+/**
+ * Liest den Schweregrad-Eintrag für (Jahr, Monat, Station) oder liefert die
+ * Nullwerte, falls (noch) nichts erfasst wurde. Für Selektoren nutzbar.
+ */
+export function getSeverityStat(
+  state: TherapyState,
+  year: number,
+  month: number,
+  unit: SeverityUnit,
+): { cases: number; tissPoints: number } {
+  const id = severityId(year, month, unit)
+  const stat = state.severityStats.find((s) => s.id === id)
+  return stat ? { cases: stat.cases, tissPoints: stat.tissPoints } : { cases: 0, tissPoints: 0 }
 }
 
 /**

@@ -50,13 +50,25 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/statistik',
     label: 'Statistik',
-    description: 'Auswertungen & Graphen',
+    description: 'Schweregradstatistik (ICU / IMC)',
     icon: (
       <svg {...svg} aria-hidden="true">
         <path d="M3 3v18h18" />
         <path d="M7 15v3" />
         <path d="M12 10v8" />
         <path d="M17 6v12" />
+      </svg>
+    ),
+  },
+  {
+    to: '/hochrechnungen',
+    label: 'Hochrechnungen',
+    description: 'Monatswerte, Jahresvergleich & Prognosen',
+    icon: (
+      // lucide: trending-up
+      <svg {...svg} aria-hidden="true">
+        <path d="M16 7h6v6" />
+        <path d="m22 7-8.5 8.5-5-5L2 17" />
       </svg>
     ),
   },
