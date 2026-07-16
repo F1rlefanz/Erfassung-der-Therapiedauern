@@ -78,3 +78,54 @@
     font-family: var(--font-heading);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Druck-/PDF-Ansicht (MDK/Controlling): Sidebar, Navigation, interaktive
+   Steuerungen und Diagramme ausblenden; KPIs + Detailtabelle für DIN A4
+   optimieren. Der Nutzer druckt via Button (window.print) und kann nativ
+   „Als PDF speichern".
+--------------------------------------------------------------------------- */
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Im Druck immer helles Farbschema erzwingen (auch bei Dark-Mode-Nutzern). */
+  :root {
+    --ui-bg: #ffffff;
+    --ui-surface: #ffffff;
+    --ui-ink: #111111;
+    --ui-ink-muted: #555555;
+    --ui-line: #cccccc;
+    --ui-primary: #c1121f;
+    --ui-on-primary: #ffffff;
+    --ui-shift: #111111;
+  }
+
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+
+  /* Layout aufbrechen: volle Breite, keine Rahmen/Schatten, kein Umbruch im Block. */
+  .print-avoid-break {
+    break-inside: avoid;
+    border: none;
+    padding: 0;
+  }
+
+  /* Tabellen sauber über Seitenumbrüche: Kopf pro Seite wiederholen, Zeilen nicht trennen. */
+  thead {
+    display: table-header-group;
+  }
+  tr {
+    break-inside: avoid;
+  }
+}

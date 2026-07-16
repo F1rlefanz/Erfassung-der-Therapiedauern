@@ -22,9 +22,11 @@ import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
 import ProjectionToggle from '../components/statistik/ProjectionToggle'
 import YearSelector from '../components/statistik/YearSelector'
+import DetailTable from '../components/statistik/DetailTable'
 
 function StatistikPage() {
   const records = useTherapyStore((s) => s.therapyRecords)
+  const patients = useTherapyStore((s) => s.patients)
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
 
   const today = todayISO()
@@ -78,8 +80,12 @@ function StatistikPage() {
           <p className="mt-1 text-sm text-ink-muted">
             Auswertung der erfassten Therapiedauern · Stand {formatDateDE(today)}
           </p>
+          {/* Nur im Druck sichtbar — nennt das Berichtsjahr, da der Selector nicht druckt. */}
+          <p className="print-only mt-1 text-sm font-medium text-ink">Berichtsjahr {selectedYear}</p>
         </div>
-        <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
+        <div className="no-print">
+          <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
+        </div>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -89,7 +95,7 @@ function StatistikPage() {
       </section>
 
       {/* Beatmungstage je Monat — Jahresvergleich (nicht kumuliert) */}
-      <section className="rounded-md border border-line bg-surface p-5">
+      <section className="no-print rounded-md border border-line bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-ink">
@@ -175,7 +181,7 @@ function StatistikPage() {
       </section>
 
       {/* Verteilung der Therapiearten (gewähltes Jahr) */}
-      <section className="rounded-md border border-line bg-surface p-5">
+      <section className="no-print rounded-md border border-line bg-surface p-5">
         <h2 className="text-base font-semibold text-ink">Verteilung der Therapiearten</h2>
         <p className="mt-1 text-sm text-ink-muted">
           Aktive Tage (mit mindestens einer Stunde) je Therapieart · {selectedYear}
@@ -220,6 +226,9 @@ function StatistikPage() {
           </p>
         )}
       </section>
+
+      {/* Detailauswertung je Patient + Exporte (druckbar) */}
+      <DetailTable patients={patients} records={yearRecords} year={selectedYear} />
     </div>
   )
 }

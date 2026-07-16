@@ -5,6 +5,26 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.9.0] - 2026-07-16 — Action Cycle 10: MDK-Reporting & Controlling-Exporte (CSV/Print)
+
+### Added
+- **Detailauswertung je Patient** (`/statistik`): tabellarische Ansicht für das
+  gewählte Jahr — Patient, Fallnummer, Beatmungstage, Therapiestunden, davon
+  CRRT (h), davon iLA/ECMO (h), inkl. Summenzeile. Sticky Header, Hover-Zeilen,
+  Corporate Design (`DetailTable`).
+- **Export-Engine** `src/lib/exports/`:
+  - `reportRows.ts`: reine Aggregation je Patient/Jahr (`buildPatientYearRows`).
+  - `csvExport.ts`: standardisiertes CSV (`;`-getrennt, CRLF, UTF-8-BOM für
+    deutsches Excel) inkl. Summenzeile; Download als `beatmungstage_<jahr>.csv`.
+  - Unit-Tests für Aggregation und CSV-Generator (Header, Zuordnung, Escaping).
+- **Print-/PDF-Export** ohne schwere Library: `@media print`-Stylesheet blendet
+  Sidebar, Navigation, interaktive Steuerungen und Diagramme aus und optimiert
+  KPIs + Tabelle für DIN A4 (helles Schema erzwungen, Seitenumbruch-Schutz,
+  wiederholter Tabellenkopf). Auslösung per `window.print()` → nativ „Als PDF
+  speichern".
+- **Action Bar** über der Tabelle: „Als CSV herunterladen" und „Drucken / PDF"
+  (mit Icons); Buttons sind deaktiviert, wenn keine Daten für das Jahr vorliegen.
+
 ## [0.8.0] - 2026-07-16 — Action Cycle 9: Monatswerte & Year-over-Year-Overlays
 
 ### Changed
