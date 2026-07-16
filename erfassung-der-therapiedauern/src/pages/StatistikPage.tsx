@@ -3,10 +3,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   LabelList,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,15 +17,11 @@ import { THERAPY_TYPES } from '../lib/therapyTypes'
 import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
 import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
 import type { ProjectionModel } from '../lib/projections/types'
-import { availableYears, buildYearProjection } from '../lib/statistics'
+import { availableYears, buildMonthlyComparison, buildYearProjection, FORECAST_SUFFIX } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
 import ProjectionToggle from '../components/statistik/ProjectionToggle'
 import YearSelector from '../components/statistik/YearSelector'
-
-const MONTH_SHORT = [
-  'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
-]
 
 function StatistikPage() {
   const records = useTherapyStore((s) => s.therapyRecords)
@@ -42,8 +38,8 @@ function StatistikPage() {
     [records, monthlyHistory, currentYear],
   )
   const isCurrentYear = selectedYear === currentYear
+  const overlayYears = years.filter((y) => y !== selectedYear)
 
-  // Alle Berechnungen filtern auf das gewählte Jahr (rein clientseitig).
   const yearRecords = useMemo(
     () => records.filter((r) => r.date.startsWith(`${selectedYear}-`)),
     [records, selectedYear],
@@ -57,9 +53,15 @@ function StatistikPage() {
   })
   const hasDistributionData = yearRecords.some((r) => r.hours.some(Boolean))
 
-  const weights = computeSeasonalWeights(monthlyHistory, currentYear)
-  const projection = buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights)
-  const chartData = projection.chart.map((p) => ({ month: MONTH_SHORT[p.month - 1], ist: p.ist, prognose: p.prognose }))
+  const weights = useMemo(
+    () => computeSeasonalWeights(monthlyHistory, currentYear),
+    [monthlyHistory, currentYear],
+  )
+  const yearEnd = buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights).yearEnd
+  const monthlyData = useMemo(
+    () => buildMonthlyComparison(records, selectedYear, years, currentYear, today, model, weights.weights),
+    [records, selectedYear, years, currentYear, today, model, weights.weights],
+  )
 
   const infoText =
     model === 'linear'
@@ -86,32 +88,32 @@ function StatistikPage() {
         <StatTile label={`Therapiestunden ${selectedYear}`} value={`${totalTherapyHours(yearRecords)} h`} />
       </section>
 
-      {/* Beatmungstage-Verlauf: laufendes Jahr = Prognose, Vorjahr = final */}
+      {/* Beatmungstage je Monat — Jahresvergleich (nicht kumuliert) */}
       <section className="rounded-md border border-line bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-ink">
-              Beatmungstage — {isCurrentYear ? 'Jahresend-Prognose' : `Jahresverlauf ${selectedYear}`}
+              Beatmungstage je Monat — Jahresvergleich
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              {isCurrentYear
-                ? `Kumulierter Verlauf ${selectedYear}: Ist und Hochrechnung zum Jahresende`
-                : `Finaler kumulierter Verlauf ${selectedYear} (abgeschlossenes Jahr)`}
+              Absolute Monatswerte {selectedYear}
+              {overlayYears.length > 0 && ` im Vergleich mit ${overlayYears.join(', ')}`}
+              {isCurrentYear && ' und Prognose für die Restmonate'}
             </p>
           </div>
           {isCurrentYear && <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />}
         </div>
 
         {isCurrentYear && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:max-w-md">
-            <StatTile label={`Beatmungstage ${selectedYear} (bisher)`} value={projection.ytd} />
-            <StatTile label="Prognose Jahresende" value={Math.round(projection.yearEnd)} accent />
-          </div>
+          <p className="mt-3 text-sm text-ink-muted">
+            Jahresend-Prognose:{' '}
+            <span className="font-semibold text-primary">{Math.round(yearEnd)} Beatmungstage</span>
+          </p>
         )}
 
         <div className="mt-4 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
+            <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
               <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="month"
@@ -125,30 +127,49 @@ function StatistikPage() {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<ProjectionTooltip />} />
-              {isCurrentYear && <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />}
-              <Line
-                name={isCurrentYear ? 'Ist (kumuliert)' : `Beatmungstage ${selectedYear}`}
-                dataKey="ist"
-                stroke="var(--ui-primary)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-                connectNulls
-              />
-              {isCurrentYear && (
+              <Tooltip cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.06 }} content={<MonthlyTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
+
+              {/* Vorjahre: dezente Linien im Hintergrund */}
+              {overlayYears.map((year, i) => (
                 <Line
-                  name="Prognose"
-                  dataKey="prognose"
-                  stroke="var(--ui-primary)"
-                  strokeWidth={2}
-                  strokeDasharray="5 4"
+                  key={year}
+                  name={String(year)}
+                  dataKey={String(year)}
+                  stroke="var(--ui-ink-muted)"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.7 - i * 0.2}
+                  strokeDasharray={i === 0 ? undefined : '4 3'}
                   dot={false}
                   isAnimationActive={false}
                   connectNulls
                 />
+              ))}
+
+              {/* Gewähltes Jahr: prägnante Balken (Ist) */}
+              <Bar
+                name={`${selectedYear} (Ist)`}
+                dataKey={String(selectedYear)}
+                fill="var(--ui-primary)"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={28}
+                isAnimationActive={false}
+              />
+
+              {/* Prognose für Restmonate: gestrichelte Linie in der Hauptfarbe */}
+              {isCurrentYear && (
+                <Line
+                  name="Prognose"
+                  dataKey={`${selectedYear}${FORECAST_SUFFIX}`}
+                  stroke="var(--ui-primary)"
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  dot={{ r: 2, fill: 'var(--ui-primary)' }}
+                  isAnimationActive={false}
+                  connectNulls
+                />
               )}
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </section>
@@ -219,17 +240,18 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
   )
 }
 
-interface ProjTooltip {
+interface MonthlyTooltipEntry {
   name: string
   value: number | null
+  color: string
 }
-function ProjectionTooltip({
+function MonthlyTooltip({
   active,
   payload,
   label,
 }: {
   active?: boolean
-  payload?: ProjTooltip[]
+  payload?: MonthlyTooltipEntry[]
   label?: string
 }) {
   if (!active || !payload?.length) return null
@@ -239,8 +261,9 @@ function ProjectionTooltip({
     <div className="rounded-sm border border-line bg-surface px-3 py-2 text-xs shadow">
       <div className="font-medium text-ink">{label}</div>
       {visible.map((p) => (
-        <div key={p.name} className="mt-0.5 text-ink-muted">
-          {p.name}: {p.value} Beatmungstage
+        <div key={p.name} className="mt-0.5 flex items-center gap-1.5 text-ink-muted">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
+          {p.name}: {p.value}
         </div>
       ))}
     </div>

@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.8.0] - 2026-07-16 — Action Cycle 9: Monatswerte & Year-over-Year-Overlays
+
+### Changed
+- **Beatmungstage-Chart auf absolute Monatswerte umgestellt** (nicht mehr
+  kumuliert) — die Saisonalität (Winter-Peaks, Sommer-Täler) ist direkt ablesbar.
+- **Recharts `ComposedChart`**: das gewählte Jahr als prägnante Balken (Ist),
+  die übrigen Jahre als dezente graue Overlay-Linien, die Prognose der
+  Restmonate als gestrichelte Linie in der Markenfarbe. Custom-Tooltip listet
+  alle Jahreswerte (Ist, Vergleichsjahre, Prognose) je Monat.
+
+### Added
+- `buildMonthlyComparison` / `monthlyVentilation` in `src/lib/statistics.ts`:
+  flache Monatsobjekte mit einem Key je Jahr (`{ month, '2026', '2025', … }`)
+  plus isolierten Prognose-Monatswerten (`'<jahr>_Prognose'`) für die Restmonate
+  des laufenden Jahres. Unit-Tests für nicht-kumulierte Monatsscheiben und
+  Prognose-Keys.
+
+### Notes
+- KPI-Karten (Patienten, Beatmungstage, Stunden) unverändert; die
+  Jahresend-Prognose bleibt als Text-Kennzahl erhalten, ist aber vom Chart
+  entkoppelt.
+
 ## [0.7.0] - 2026-07-16 — Action Cycle 8: Jahresauswahl in der Statistik
 
 ### Added

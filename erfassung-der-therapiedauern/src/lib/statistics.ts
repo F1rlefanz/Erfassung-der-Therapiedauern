@@ -9,6 +9,22 @@ import type { MonthlyAggregate, ProjectionModel } from './projections/types'
  * alle Jahre.
  */
 
+/** Kurzform der Monatsnamen (Index 0 = Januar). */
+export const MONTH_SHORT = [
+  'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
+]
+
+/** Absolute (nicht-kumulierte) Beatmungstage je Monat (Index 1–12) für ein Jahr. */
+export function monthlyVentilation(records: TherapyRecord[], year: number): number[] {
+  const perMonth = Array<number>(13).fill(0)
+  for (const r of records) {
+    if (!r.date.startsWith(`${year}-`)) continue
+    if (!isVentilationDay(r)) continue
+    perMonth[Number(r.date.slice(5, 7))] += 1
+  }
+  return perMonth
+}
+
 /**
  * Ermittelt die auswählbaren Jahre: das aktuelle Jahr plus alle Jahre, für die
  * Records oder Aggregate vorliegen. Absteigend sortiert (neuestes zuerst).
@@ -111,4 +127,67 @@ export function buildYearProjection(
   }
 
   return { ytd, yearEnd, isProjected: true, chart }
+}
+
+/** Suffix für den Prognose-Key eines Jahres (z. B. "2026_Prognose"). */
+export const FORECAST_SUFFIX = '_Prognose'
+
+/** Ein Monatsobjekt für den YoY-Vergleich (flache Keys pro Jahr + Prognose). */
+export type MonthlyComparisonPoint = Record<string, number | string | null>
+
+/**
+ * Baut 12 Monatsobjekte (Jan–Dez) mit den **nicht-kumulierten** absoluten
+ * Beatmungstagen des gewählten Jahres UND aller Vorjahre als flache Keys
+ * (z. B. `{ month: 'Jan', '2026': 17, '2025': 19, '2024': 29 }`).
+ *
+ * Ist `selectedYear` das laufende Jahr, werden für die **zukünftigen** Monate die
+ * isolierten prognostizierten Monatswerte unter dem Key `"<jahr>_Prognose"`
+ * ergänzt (Restmenge bis zur Jahresend-Prognose, verteilt nach den Monats-
+ * gewichten des gewählten Modells). Monate des laufenden Jahres ohne Ist-Daten
+ * bleiben `null`, damit Overlay-Linien nicht auf 0 abfallen.
+ */
+export function buildMonthlyComparison(
+  records: TherapyRecord[],
+  selectedYear: number,
+  years: number[],
+  currentYear: number,
+  todayIso: string,
+  model: ProjectionModel,
+  weights: number[],
+): MonthlyComparisonPoint[] {
+  const currentMonth = Number(todayIso.slice(5, 7))
+  const perYear = new Map<number, number[]>()
+  for (const y of years) perYear.set(y, monthlyVentilation(records, y))
+
+  const isCurrentSelected = selectedYear === currentYear
+
+  // Isolierte Monats-Prognose (nur laufendes, gewähltes Jahr, Zukunftsmonate).
+  const forecast = Array<number | null>(13).fill(null)
+  if (isCurrentSelected) {
+    const actual = perYear.get(selectedYear) ?? Array<number>(13).fill(0)
+    let ytd = 0
+    for (let m = 1; m <= currentMonth; m++) ytd += actual[m]
+    const yearEnd = projectYearEnd(ytd, todayIso, model, weights)
+    const remaining = Math.max(0, yearEnd - ytd)
+    const monthWeight = (m: number) =>
+      model === 'seasonal' ? weights[m - 1] : daysInMonth(selectedYear, m)
+    let remainingSum = 0
+    for (let m = currentMonth + 1; m <= 12; m++) remainingSum += monthWeight(m)
+    for (let m = currentMonth + 1; m <= 12; m++) {
+      forecast[m] = remainingSum > 0 ? Math.round((remaining * monthWeight(m)) / remainingSum) : 0
+    }
+  }
+
+  const result: MonthlyComparisonPoint[] = []
+  for (let m = 1; m <= 12; m++) {
+    const point: MonthlyComparisonPoint = { month: MONTH_SHORT[m - 1], monthIndex: m }
+    for (const y of years) {
+      // Zukunftsmonate des laufenden Jahres haben (noch) keine Ist-Daten → null.
+      const isFutureOfCurrent = y === currentYear && m > currentMonth
+      point[String(y)] = isFutureOfCurrent ? null : (perYear.get(y)?.[m] ?? 0)
+    }
+    if (isCurrentSelected) point[`${selectedYear}${FORECAST_SUFFIX}`] = forecast[m]
+    result.push(point)
+  }
+  return result
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { TherapyRecord, TherapyType } from '../types'
-import { availableYears, buildYearProjection } from './statistics'
+import {
+  availableYears,
+  buildMonthlyComparison,
+  buildYearProjection,
+  monthlyVentilation,
+} from './statistics'
 import { ICU_FALLBACK_WEIGHTS } from './projections/seasonalWeights'
 
 function rec(date: string, therapyType: TherapyType = 'beatmung'): TherapyRecord {
@@ -39,6 +44,62 @@ describe('buildYearProjection — Vorjahr (abgeschlossen)', () => {
     expect(result.chart[11].ist).toBe(3) // Dezember final
     expect(result.yearEnd).toBe(3)
     // Records anderer Jahre fließen nicht ein.
+  })
+})
+
+describe('monthlyVentilation', () => {
+  it('liefert absolute (nicht-kumulierte) Monatswerte', () => {
+    const records = [rec('2024-01-10'), rec('2024-01-20'), rec('2024-03-05')]
+    const perMonth = monthlyVentilation(records, 2024)
+    expect(perMonth[1]).toBe(2) // Januar
+    expect(perMonth[2]).toBe(0) // Februar (kein Wert, NICHT kumuliert)
+    expect(perMonth[3]).toBe(1) // März
+  })
+})
+
+describe('buildMonthlyComparison (YoY)', () => {
+  const records = [
+    rec('2024-01-10'),
+    rec('2024-01-20'),
+    rec('2024-03-05'),
+    rec('2025-01-02'),
+    rec('2026-01-04'),
+    rec('2026-02-08'),
+  ]
+  const years = [2026, 2025, 2024]
+
+  it('legt flache, nicht-kumulierte Jahres-Keys je Monat an', () => {
+    const data = buildMonthlyComparison(records, 2024, years, 2026, '2026-07-16', 'seasonal', [
+      ...ICU_FALLBACK_WEIGHTS,
+    ])
+    expect(data).toHaveLength(12)
+    const jan = data[0]
+    expect(jan.month).toBe('Jan')
+    expect(jan['2024']).toBe(2) // absolut, nicht kumuliert
+    expect(jan['2025']).toBe(1)
+    expect(jan['2026']).toBe(1)
+    const feb = data[1]
+    expect(feb['2024']).toBe(0) // Februar 2024 leer (keine Kumulierung)
+    const mar = data[2]
+    expect(mar['2024']).toBe(1)
+  })
+
+  it('ohne laufendes Jahr gewählt: KEIN Prognose-Key', () => {
+    const data = buildMonthlyComparison(records, 2024, years, 2026, '2026-07-16', 'seasonal', [
+      ...ICU_FALLBACK_WEIGHTS,
+    ])
+    expect(data.every((p) => p['2024_Prognose'] === undefined)).toBe(true)
+  })
+
+  it('laufendes Jahr gewählt: Prognose nur für Zukunftsmonate, Ist-Zukunft = null', () => {
+    const data = buildMonthlyComparison(records, 2026, years, 2026, '2026-07-16', 'seasonal', [
+      ...ICU_FALLBACK_WEIGHTS,
+    ])
+    const jul = data[6] // aktueller Monat
+    const aug = data[7] // Zukunft
+    expect(jul['2026_Prognose']).toBeNull() // Vergangenheit/aktuell -> keine Prognose
+    expect(aug['2026']).toBeNull() // noch keine Ist-Daten
+    expect(typeof aug['2026_Prognose']).toBe('number') // Prognosewert vorhanden
   })
 })
 
