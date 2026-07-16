@@ -1,0 +1,48 @@
+import type { TherapyType } from '../../types'
+import { getHours, HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
+import HourCell from './HourCell'
+
+interface TherapyRowProps {
+  patientId: string
+  therapyType: TherapyType
+  label: string
+}
+
+/**
+ * Eine Therapie-Zeile: Label + 24 {@link HourCell}s für (Patient, Therapieart)
+ * am aktuell gewählten Datum. Abonniert gezielt nur das eigene Stunden-Array,
+ * damit beim Malen ausschließlich die betroffene Zeile neu rendert.
+ */
+function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
+  const hours = useTherapyStore((s) => getHours(s, patientId, therapyType))
+  const startPaint = useTherapyStore((s) => s.startPaint)
+  const paintOver = useTherapyStore((s) => s.paintOver)
+  const toggleHour = useTherapyStore((s) => s.toggleHour)
+
+  const activeCount = hours.reduce((sum, h) => (h ? sum + 1 : sum), 0)
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex w-28 shrink-0 items-baseline justify-between pr-1">
+        <span className="text-sm font-medium text-ink">{label}</span>
+        <span className="text-xs tabular-nums text-ink-muted" title="Aktive Stunden">
+          {activeCount}h
+        </span>
+      </div>
+      <div className="flex" role="group" aria-label={`${label}: Stunden 0 bis 23`}>
+        {Array.from({ length: HOURS_PER_DAY }, (_, hourIndex) => (
+          <HourCell
+            key={hourIndex}
+            hourIndex={hourIndex}
+            isActive={hours[hourIndex]}
+            onPaintStart={() => startPaint(patientId, therapyType, hourIndex)}
+            onPaintEnter={() => paintOver(patientId, therapyType, hourIndex)}
+            onToggle={() => toggleHour(patientId, therapyType, hourIndex)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default TherapyRow

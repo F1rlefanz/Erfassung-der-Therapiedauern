@@ -3,6 +3,8 @@
 # ..Projektdateien/.legacy-source/ bleibt bewusst getrackt (Cloud-Lesezugriff),
 # nur claude_docs/ wird ignoriert.
 ..Projektdateien/claude_docs/
+..Projektdateien/CSJR Corporate Design für Apps.zip
+..Projektdateien/CSJR Corporate Design für Apps
 
 # --- Dependencies ---
 node_modules/
