@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { Patient, TherapyRecord, TherapyType } from '../types'
 import { idbStorage } from '../lib/idbStorage'
-import { todayISO } from '../lib/date'
+import { previousDay, todayISO } from '../lib/date'
 import {
   initSync,
   isSyncConnected,
@@ -124,6 +124,12 @@ interface TherapyState {
   startPaint: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   paintOver: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   endPaint: () => void
+  /**
+   * Übernimmt laufende Therapien vom Vortag: Therapien, die gestern um 23 Uhr
+   * noch aktiv waren, werden heute ab Stunde 0 fortgesetzt. Gibt die Anzahl der
+   * fortgeführten Therapien zurück.
+   */
+  carryOverFromPreviousDay: () => number
 
   // ---- Sync (lokaler Server via Socket.io) ----
   startSync: () => () => void
@@ -227,6 +233,40 @@ export const useTherapyStore = create<TherapyState>()(
       },
 
       endPaint: () => set({ isPainting: false, paintTarget: null }),
+
+      carryOverFromPreviousDay: () => {
+        const { selectedDate, therapyRecords } = get()
+        const fromDate = previousDay(selectedDate)
+        // Therapien, die gestern um 23 Uhr noch liefen, gelten als durchgehend.
+        const continuing = therapyRecords.filter(
+          (r) => r.date === fromDate && r.hours[HOURS_PER_DAY - 1] === true,
+        )
+
+        let count = 0
+        for (const r of continuing) {
+          const alreadyRunning = get().therapyRecords.some(
+            (t) =>
+              t.patientId === r.patientId &&
+              t.date === selectedDate &&
+              t.therapyType === r.therapyType &&
+              t.hours[0] === true,
+          )
+          if (alreadyRunning) continue
+          set((state) => ({
+            therapyRecords: applyHour(
+              state.therapyRecords,
+              r.patientId,
+              selectedDate,
+              r.therapyType,
+              0,
+              true,
+            ),
+          }))
+          scheduleRecordPush(r.patientId, selectedDate, r.therapyType)
+          count += 1
+        }
+        return count
+      },
 
       // ---- Sync ----
 

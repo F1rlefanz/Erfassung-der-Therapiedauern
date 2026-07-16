@@ -5,6 +5,32 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.4.0] - 2026-07-16 — Action Cycle 5: Klinische Logik, Continuation & Statistik-Dashboard
+
+### Added
+- **Berechnungs-Service** `src/lib/therapyCalculator.ts` (rein, unit-getestet):
+  Therapiestunden, **Beatmungstage** (Beatmung + ≥1 Stunde = 1 Kalendertag),
+  Aggregation gesamt/Monat und Therapiearten-Verteilung.
+- **Continuation „Vortag fortführen"**: Therapien, die am Vortag um 23 Uhr noch
+  liefen, werden heute ab Stunde 0 fortgesetzt (Button in `/erfassung`); die
+  Events synchronisieren über den bestehenden Socket.io/SQLite-Stack.
+- **Statistik-Dashboard** (`/statistik`) mit `recharts`: Kennzahlen (Patienten,
+  Beatmungstage gesamt/Monat, Therapiestunden) und ein Balkendiagramm der
+  Therapiearten-Verteilung — im Corporate Design, theme-aware, ohne Animationen.
+- **Schicht-Header** über dem 24h-Raster: dezente Bänder Früh/Spät/Nacht
+  (06/13/21 Uhr) zusätzlich zu den Spaltentrennern.
+- Unit-Tests für `therapyCalculator` (Schwerpunkt Beatmungstage-Regel) und die
+  Continuation-Logik.
+
+### Changed
+- Therapiearten-Metadaten in `src/lib/therapyTypes.ts` zentralisiert (eine Quelle
+  für Tabelle, Statistik, Berechnungen).
+- Kennzahlenkachel als geteilte Komponente `src/components/StatTile.tsx`
+  (Dublette im Dashboard entfernt).
+
+### Removed
+- Ungenutzte `PlaceholderView`-Komponente (Statistik/Settings sind jetzt echt).
+
 ## [0.3.1] - 2026-07-16 — Action Cycle 4.1: On-Premise-Architektur (Node + SQLite + Socket.io)
 
 Strategiewechsel: Wegen DSGVO (klinische Patientendaten) bleiben alle Daten

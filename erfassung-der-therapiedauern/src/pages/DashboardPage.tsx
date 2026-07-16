@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { NAV_ITEMS } from '../components/layout/navItems'
 import { useTherapyStore } from '../store/therapyStore'
 import { formatDateDE, formatDateTimeDE, todayISO } from '../lib/date'
+import StatTile from '../components/StatTile'
 
 /** Schnellzugriff-Ziele: alle Navigationseinträge außer dem Dashboard selbst. */
 const QUICK_LINKS = NAV_ITEMS.filter((item) => item.to !== '/')
@@ -73,29 +74,6 @@ function DashboardPage() {
           Letzte Aktualisierung: {lastUpdate ? formatDateTimeDE(lastUpdate) : '–'}
         </p>
       </section>
-    </div>
-  )
-}
-
-interface StatTileProps {
-  label: string
-  value: string | number
-  /** Hebt den Wert in der Markenfarbe hervor (für die Kennzahl im Fokus). */
-  accent?: boolean
-}
-
-function StatTile({ label, value, accent }: StatTileProps) {
-  return (
-    <div className="rounded-md border border-line bg-surface p-4">
-      <div
-        className={[
-          'text-3xl font-semibold tabular-nums',
-          accent ? 'text-primary' : 'text-ink',
-        ].join(' ')}
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-xs text-ink-muted">{label}</div>
     </div>
   )
 }

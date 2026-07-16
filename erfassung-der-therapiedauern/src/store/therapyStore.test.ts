@@ -168,6 +168,28 @@ describe('Sync-Merge (Remote-Events)', () => {
   })
 })
 
+describe('Continuation (Vortag fortführen)', () => {
+  it('setzt eine gestern um 23 Uhr laufende Therapie heute ab Stunde 0 fort', () => {
+    const pid = addPatient()
+    // Vortag (2026-07-16): Beatmung läuft um 23 Uhr noch.
+    s().toggleHour(pid, 'beatmung', 23)
+    s().setSelectedDate('2026-07-17')
+
+    const carried = s().carryOverFromPreviousDay()
+    expect(carried).toBe(1)
+    expect(getHours(s(), pid, 'beatmung')[0]).toBe(true)
+  })
+
+  it('führt Therapien nicht fort, die um 23 Uhr nicht mehr liefen', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 5) // endet vor Mitternacht
+    s().setSelectedDate('2026-07-17')
+
+    expect(s().carryOverFromPreviousDay()).toBe(0)
+    expect(getHours(s(), pid, 'beatmung').some(Boolean)).toBe(false)
+  })
+})
+
 describe('Backup & Restore', () => {
   it('exportiert und re-importiert den Bestand (Round-Trip, replace)', () => {
     const pid = addPatient()

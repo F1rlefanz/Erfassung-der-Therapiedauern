@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react'
-import type { TherapyType } from '../../types'
 import { HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
+import { THERAPY_TYPES } from '../../lib/therapyTypes'
 import TherapyRow from './TherapyRow'
 
-/** Anzeige-Reihenfolge und Beschriftung der Therapiearten. */
-const THERAPY_META: ReadonlyArray<{ type: TherapyType; label: string }> = [
-  { type: 'beatmung', label: 'Beatmung' },
-  { type: 'crrt', label: 'CRRT' },
-  { type: 'ila_ecmo', label: 'ILA / ECMO' },
-]
+/** Breite einer Stundenzelle in rem (deckungsgleich mit `w-7` = 1.75rem). */
+const CELL_REM = 1.75
 
 /** Stunden, an denen eine neue Schicht beginnt (Früh / Spät / Nacht). */
 const SHIFT_START_HOURS = new Set([6, 13, 21])
 
+/** Schichtbänder für den Header (Nachtschicht umschließt Mitternacht). */
+const SHIFTS = [
+  { label: 'Nacht', startHour: 0, hours: 6 },
+  { label: 'Früh', startHour: 6, hours: 7 },
+  { label: 'Spät', startHour: 13, hours: 8 },
+  { label: 'Nacht', startHour: 21, hours: 3 },
+]
+
 /**
  * Erfassungstabelle: pro Patient je eine Zeile pro Therapieart mit dem
- * 24-Stunden-Raster. Bindet Datumswahl, Patient-Anlage und die „Malen"-Geste
- * an den globalen Store.
+ * 24-Stunden-Raster. Bindet Datumswahl, Patient-Anlage, „Vortag fortführen"
+ * und die „Malen"-Geste an den globalen Store.
  */
 function TherapyTable() {
   const selectedDate = useTherapyStore((s) => s.selectedDate)
@@ -24,9 +28,11 @@ function TherapyTable() {
   const patients = useTherapyStore((s) => s.patients)
   const addPatient = useTherapyStore((s) => s.addPatient)
   const endPaint = useTherapyStore((s) => s.endPaint)
+  const carryOver = useTherapyStore((s) => s.carryOverFromPreviousDay)
 
   const [name, setName] = useState('')
   const [caseNumber, setCaseNumber] = useState('')
+  const [carryMessage, setCarryMessage] = useState<string | null>(null)
 
   // Malen endet, sobald der Zeiger irgendwo losgelassen wird — auch außerhalb
   // des Rasters. Darum global auf window lauschen.
@@ -47,19 +53,40 @@ function TherapyTable() {
     setCaseNumber('')
   }
 
+  function handleCarryOver() {
+    const count = carryOver()
+    setCarryMessage(
+      count === 0
+        ? 'Keine laufenden Therapien vom Vortag gefunden.'
+        : `${count} laufende Therapie${count === 1 ? '' : 'n'} vom Vortag fortgeführt.`,
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Kopfzeile: Datumswahl + Patient hinzufügen */}
+      {/* Kopfzeile: Datumswahl + Übernahme + Patient hinzufügen */}
       <div className="flex flex-wrap items-end gap-4 rounded-md border border-line bg-surface p-4">
         <label className="flex flex-col gap-1 text-sm text-ink-muted">
           Datum
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => {
+              setSelectedDate(e.target.value)
+              setCarryMessage(null)
+            }}
             className="rounded-sm border border-line bg-bg px-2 py-1 text-ink"
           />
         </label>
+
+        <button
+          type="button"
+          onClick={handleCarryOver}
+          title="Therapien, die am Vortag um 23 Uhr noch liefen, heute ab 0 Uhr fortsetzen"
+          className="rounded-sm border border-line px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Vortag fortführen
+        </button>
 
         <form onSubmit={handleAddPatient} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm text-ink-muted">
@@ -89,12 +116,19 @@ function TherapyTable() {
         </form>
       </div>
 
+      {carryMessage && (
+        <p className="text-sm text-ink-muted" role="status">
+          {carryMessage}
+        </p>
+      )}
+
       {patients.length === 0 ? (
         <div className="rounded-md border border-line bg-surface p-8 text-center text-sm text-ink-muted">
           Noch keine Patienten erfasst. Lege oben einen Patienten an, um Therapiestunden zu erfassen.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-line bg-surface p-4">
+          <ShiftHeader />
           <HourRuler />
           <div className="mt-2 space-y-5">
             {patients.map((patient) => (
@@ -103,7 +137,7 @@ function TherapyTable() {
                   <h3 className="text-base font-semibold text-ink">{patient.name}</h3>
                   <span className="text-xs text-ink-muted">Fall {patient.caseNumber}</span>
                 </header>
-                {THERAPY_META.map((meta) => (
+                {THERAPY_TYPES.map((meta) => (
                   <TherapyRow
                     key={meta.type}
                     patientId={patient.id}
@@ -126,13 +160,40 @@ function TherapyTable() {
 }
 
 /**
+ * Dezenter Schicht-Header über dem Stundenlineal: kennzeichnet Früh- (ab 6),
+ * Spät- (ab 13) und Nachtschicht (ab 21) als beschriftete Bänder, ausgerichtet
+ * an den Zellen.
+ */
+function ShiftHeader() {
+  return (
+    <div className="flex items-stretch gap-3">
+      <div className="w-28 shrink-0" />
+      <div className="flex">
+        {SHIFTS.map((shift, i) => (
+          <div
+            key={i}
+            style={{ width: `${shift.hours * CELL_REM}rem` }}
+            className={[
+              'text-center text-[11px] uppercase tracking-wide text-ink-muted',
+              SHIFT_START_HOURS.has(shift.startHour) ? 'border-l-2 border-l-shift' : '',
+            ].join(' ')}
+          >
+            {shift.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
  * Stundenlineal (0–23) über den Therapie-Zeilen, ausgerichtet an den Zellen.
  * Die Schichtgrenzen (6/13/21 Uhr) tragen denselben dickeren linken Rand wie
  * die Zellen darunter.
  */
 function HourRuler() {
   return (
-    <div className="flex items-end gap-3">
+    <div className="mt-0.5 flex items-end gap-3">
       <div className="w-28 shrink-0" />
       <div className="flex">
         {Array.from({ length: HOURS_PER_DAY }, (_, hourIndex) => (
