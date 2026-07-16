@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
 import { THERAPY_TYPES } from '../../lib/therapyTypes'
 import TherapyRow from './TherapyRow'
+import TherapyDayTotals from './TherapyDayTotals'
 
 /** Breite einer Stundenzelle in rem (deckungsgleich mit `w-7` = 1.75rem). */
 const CELL_REM = 1.75
@@ -148,6 +149,7 @@ function TherapyTable() {
               </section>
             ))}
           </div>
+          <TherapyDayTotals />
         </div>
       )}
 
@@ -207,6 +209,9 @@ function HourRuler() {
             {hourIndex}
           </div>
         ))}
+      </div>
+      <div className="w-12 shrink-0 text-center text-[10px] uppercase tracking-wide text-ink-muted">
+        Gesamt
       </div>
     </div>
   )

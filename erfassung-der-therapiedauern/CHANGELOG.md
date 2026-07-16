@@ -5,6 +5,17 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.10.0] - 2026-07-16 — Action Cycle 11: Gesamtzeiten & Summenzeilen in der Erfassung
+
+### Added
+- **Gesamtzeit je Zeile** in `/erfassung`: am Ende jeder Therapie-Zeile eine
+  nicht-interaktive Zelle mit der Summe der markierten Stunden (dezenter grauer
+  Hintergrund, `font-bold`), plus „Gesamt"-Spaltenkopf im Stundenlineal.
+- **Tages-Summenzeile** unter der Tabelle (`TherapyDayTotals`): Gesamtzeit je
+  Therapieart über alle Patienten am gewählten Tag (Beatmung / CRRT / ILA/ECMO)
+  sowie ein Tagesgesamt — abgeleitet aus dem alten Legacy-Konzept
+  („Gesamtzeit aller Patienten").
+
 ## [0.9.0] - 2026-07-16 — Action Cycle 10: MDK-Reporting & Controlling-Exporte (CSV/Print)
 
 ### Added

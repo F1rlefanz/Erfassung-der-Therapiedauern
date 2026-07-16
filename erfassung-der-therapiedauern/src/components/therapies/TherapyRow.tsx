@@ -23,11 +23,8 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex w-28 shrink-0 items-baseline justify-between pr-1">
+      <div className="w-28 shrink-0 pr-1">
         <span className="text-sm font-medium text-ink">{label}</span>
-        <span className="text-xs tabular-nums text-ink-muted" title="Aktive Stunden">
-          {activeCount}h
-        </span>
       </div>
       <div className="flex" role="group" aria-label={`${label}: Stunden 0 bis 23`}>
         {Array.from({ length: HOURS_PER_DAY }, (_, hourIndex) => (
@@ -40,6 +37,13 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
             onToggle={() => toggleHour(patientId, therapyType, hourIndex)}
           />
         ))}
+      </div>
+      {/* Gesamtzeit dieser Zeile — nicht interaktiv, optisch abgesetzt. */}
+      <div
+        className="flex h-7 w-12 shrink-0 items-center justify-center rounded-sm border border-line bg-bg text-sm font-bold tabular-nums text-ink"
+        title="Gesamtzeit (Stunden)"
+      >
+        {activeCount}
       </div>
     </div>
   )
