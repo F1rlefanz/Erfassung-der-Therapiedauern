@@ -1,4 +1,33 @@
 import { describe, expect, it } from 'vitest'
+import {
+  hasEnoughDataForProjection,
+  MIN_MONTHS_FOR_PROJECTION,
+  projectionConfidence,
+} from './projections'
+
+describe('Datenbasis-Guard & Konfidenz', () => {
+  it('rechnet erst ab 3 verstrichenen Monaten hoch', () => {
+    expect(MIN_MONTHS_FOR_PROJECTION).toBe(3)
+    expect(hasEnoughDataForProjection('2026-01-31')).toBe(false)
+    expect(hasEnoughDataForProjection('2026-02-28')).toBe(false)
+    expect(hasEnoughDataForProjection('2026-03-01')).toBe(true)
+    expect(hasEnoughDataForProjection('2026-12-31')).toBe(true)
+  })
+
+  it('Konfidenz steigt mit den Monaten und ist bei 0.8 gedeckelt', () => {
+    // Monatsanteil min(m/12, 0.8) × Modellfaktor (seasonal 0.8, linear 0.7)
+    expect(projectionConfidence('2026-03-15', 'seasonal')).toBeCloseTo((3 / 12) * 0.8, 10)
+    expect(projectionConfidence('2026-06-15', 'seasonal')).toBeCloseTo((6 / 12) * 0.8, 10)
+    // Ab Monat 10 greift der Deckel 0.8.
+    expect(projectionConfidence('2026-12-15', 'seasonal')).toBeCloseTo(0.8 * 0.8, 10)
+  })
+
+  it('gewichtet das saisonale Modell höher als die lineare Hochrechnung', () => {
+    expect(projectionConfidence('2026-06-15', 'seasonal')).toBeGreaterThan(
+      projectionConfidence('2026-06-15', 'linear'),
+    )
+  })
+})
 import { linearProjection, projectYearEnd, seasonalProjection } from './projections'
 import { computeSeasonalWeights, ICU_FALLBACK_WEIGHTS } from './seasonalWeights'
 import type { MonthlyAggregate } from './types'

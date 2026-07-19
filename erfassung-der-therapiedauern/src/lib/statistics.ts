@@ -1,6 +1,11 @@
 import type { TherapyRecord } from '../types'
 import { isVentilationDay } from './therapyCalculator'
-import { daysInMonth, projectYearEnd } from './projections/projections'
+import {
+  daysInMonth,
+  hasEnoughDataForProjection,
+  projectionConfidence,
+  projectYearEnd,
+} from './projections/projections'
 import type { MonthlyAggregate, ProjectionModel } from './projections/types'
 
 /**
@@ -55,8 +60,21 @@ export interface YearChartPoint {
 export interface YearProjection {
   ytd: number
   yearEnd: number
-  /** true, wenn eine Hochrechnung erfolgt (nur laufendes Jahr). */
+  /**
+   * true, wenn eine Hochrechnung erfolgt — also laufendes Jahr UND genügend
+   * Datenbasis (siehe {@link hasEnoughDataForProjection}).
+   */
   isProjected: boolean
+  /**
+   * Konfidenz 0–1; 0, wenn nicht hochgerechnet wird. Nur als Verlässlichkeits-
+   * hinweis gedacht, kein statistisches Konfidenzintervall.
+   */
+  confidence: number
+  /**
+   * true, wenn im laufenden Jahr allein die Datenbasis zu dünn ist (< 3 Monate).
+   * Erlaubt der UI, das zu erklären statt kommentarlos nichts anzuzeigen.
+   */
+  insufficientData: boolean
   chart: YearChartPoint[]
 }
 
@@ -95,9 +113,27 @@ export function buildYearProjection(
       ytd,
       yearEnd: cumulative[12],
       isProjected: false,
+      confidence: 0,
+      insufficientData: false,
       chart: Array.from({ length: 12 }, (_, i) => ({
         month: i + 1,
         ist: cumulative[i + 1],
+        prognose: null,
+      })),
+    }
+  }
+
+  // Laufendes Jahr, aber zu dünne Datenbasis: Ist-Kurve zeigen, NICHT hochrechnen.
+  if (!hasEnoughDataForProjection(todayIso)) {
+    return {
+      ytd,
+      yearEnd: ytd,
+      isProjected: false,
+      confidence: 0,
+      insufficientData: true,
+      chart: Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        ist: i + 1 <= endMonth ? cumulative[i + 1] : null,
         prognose: null,
       })),
     }
@@ -126,7 +162,14 @@ export function buildYearProjection(
     })
   }
 
-  return { ytd, yearEnd, isProjected: true, chart }
+  return {
+    ytd,
+    yearEnd,
+    isProjected: true,
+    confidence: projectionConfidence(todayIso, model),
+    insufficientData: false,
+    chart,
+  }
 }
 
 /** Suffix für den Prognose-Key eines Jahres (z. B. "2026_Prognose"). */
@@ -159,7 +202,9 @@ export function buildMonthlyComparison(
   const perYear = new Map<number, number[]>()
   for (const y of years) perYear.set(y, monthlyVentilation(records, y))
 
-  const isCurrentSelected = selectedYear === currentYear
+  // Ohne ausreichende Datenbasis wird auch hier nicht hochgerechnet — sonst
+  // erschiene im Chart eine Prognoselinie, die die Jahres-KPI gar nicht ausweist.
+  const isCurrentSelected = selectedYear === currentYear && hasEnoughDataForProjection(todayIso)
 
   // Isolierte Monats-Prognose (nur laufendes, gewähltes Jahr, Zukunftsmonate).
   const forecast = Array<number | null>(13).fill(null)

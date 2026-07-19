@@ -17,6 +17,8 @@ import { THERAPY_TYPES } from '../lib/therapyTypes'
 import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
 import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
 import type { ProjectionModel } from '../lib/projections/types'
+import { MIN_MONTHS_FOR_PROJECTION } from '../lib/projections/projections'
+import TherapyStatsTable from '../components/analysen/TherapyStatsTable'
 import { availableYears, buildMonthlyComparison, buildYearProjection, FORECAST_SUFFIX } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
@@ -57,7 +59,10 @@ function AnalysenPage() {
     () => computeSeasonalWeights(monthlyHistory, currentYear),
     [monthlyHistory, currentYear],
   )
-  const yearEnd = buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights).yearEnd
+  const projection = useMemo(
+    () => buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights),
+    [records, selectedYear, isCurrentYear, today, model, weights.weights],
+  )
   const monthlyData = useMemo(
     () => buildMonthlyComparison(records, selectedYear, years, currentYear, today, model, weights.weights),
     [records, selectedYear, years, currentYear, today, model, weights.weights],
@@ -98,16 +103,34 @@ function AnalysenPage() {
             <p className="mt-1 text-sm text-ink-muted">
               Absolute Monatswerte {selectedYear}
               {overlayYears.length > 0 && ` im Vergleich mit ${overlayYears.join(', ')}`}
-              {isCurrentYear && ' und Prognose für die Restmonate'}
+              {projection.isProjected && ' und Prognose für die Restmonate'}
             </p>
           </div>
-          {isCurrentYear && <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />}
+          {isCurrentYear && projection.isProjected && (
+            <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />
+          )}
         </div>
 
-        {isCurrentYear && (
+        {projection.isProjected && (
           <p className="mt-3 text-sm text-ink-muted">
             Jahresend-Prognose:{' '}
-            <span className="font-semibold text-primary">{Math.round(yearEnd)} Beatmungstage</span>
+            <span className="font-semibold text-primary">
+              {Math.round(projection.yearEnd)} Beatmungstage
+            </span>
+            <span
+              className="ml-2 text-xs"
+              title="Verlässlichkeitshinweis, kein statistisches Konfidenzintervall. Steigt mit der Zahl der vorliegenden Monate; das saisonale Modell wiegt höher als die lineare Hochrechnung."
+            >
+              Konfidenz {Math.round(projection.confidence * 100)} %
+            </span>
+          </p>
+        )}
+
+        {projection.insufficientData && (
+          <p className="mt-3 rounded-sm border border-line bg-bg px-3 py-2 text-sm text-ink-muted">
+            Noch keine Jahresprognose — dafür braucht es mindestens{' '}
+            {MIN_MONTHS_FOR_PROJECTION} Monate Datenbasis. Angezeigt werden die bisherigen
+            Ist-Werte.
           </p>
         )}
 
@@ -219,6 +242,31 @@ function AnalysenPage() {
             Keine Therapiedaten für {selectedYear}.
           </p>
         )}
+      </section>
+
+      {/* Monatsstatistik je Therapieart (Nachbau der Legacy-Tabellen) */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-ink">Monatsstatistik je Therapieart</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            Stunden, Tage und Fallzahlen je Monat · {selectedYear}
+          </p>
+        </div>
+        {THERAPY_TYPES.map((meta) => (
+          <TherapyStatsTable
+            key={meta.type}
+            records={yearRecords}
+            therapyType={meta.type}
+            label={meta.label}
+            year={selectedYear}
+            elapsedMonths={isCurrentYear ? Number(today.slice(5, 7)) : 0}
+          />
+        ))}
+        <p className="text-xs text-ink-muted">
+          Hinweis: „Tage/Fall" rechnet in der Gesamtzeile mit den <em>neuen</em> Fällen, in der
+          Zeile „Ø pro Monat (÷ 12)" dagegen mit <em>allen</em> Fällen (neu + fortgeführt) — diese
+          Unterscheidung stammt aus der Vorgänger-Anwendung und ist bewusst beibehalten.
+        </p>
       </section>
     </div>
   )

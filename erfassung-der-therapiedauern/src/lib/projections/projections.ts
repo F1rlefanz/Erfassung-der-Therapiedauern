@@ -77,6 +77,36 @@ export function seasonalProjection(
   return valueYTD / fraction
 }
 
+/**
+ * Mindestanzahl verstrichener Monate, bevor überhaupt hochgerechnet wird.
+ * Aus wenigen Tagen eine Jahresprognose abzuleiten wäre irreführend — die
+ * Legacy-Anwendung hatte dieselbe Schwelle (`minMonths = 3`).
+ */
+export const MIN_MONTHS_FOR_PROJECTION = 3
+
+/**
+ * Ob genügend Datenbasis für eine Hochrechnung vorliegt. Maßgeblich ist der
+ * laufende Monat des Bezugsdatums (im März → 3 verstrichene Monate).
+ */
+export function hasEnoughDataForProjection(
+  refIso: string,
+  minMonths: number = MIN_MONTHS_FOR_PROJECTION,
+): boolean {
+  return parseRef(refIso).month >= minMonths
+}
+
+/**
+ * Konfidenz der Hochrechnung zwischen 0 und 1 (Legacy-Formel): Je mehr Monate
+ * vorliegen, desto verlässlicher — gedeckelt bei 0,8 —, multipliziert mit einem
+ * modellabhängigen Faktor. Das saisonale Modell rechnet Saisoneffekte heraus und
+ * ist daher höher gewichtet als die reine Lineare.
+ */
+export function projectionConfidence(refIso: string, model: ProjectionModel): number {
+  const monthConfidence = Math.min(parseRef(refIso).month / 12, 0.8)
+  const modelConfidence = model === 'seasonal' ? 0.8 : 0.7
+  return monthConfidence * modelConfidence
+}
+
 /** Wählt das Prognose-Modell und liefert die Jahresend-Prognose. */
 export function projectYearEnd(
   valueYTD: number,

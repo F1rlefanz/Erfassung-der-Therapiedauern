@@ -107,17 +107,41 @@ describe('buildYearProjection — laufendes Jahr', () => {
   const records = [rec('2026-01-10'), rec('2026-02-15')]
 
   it('berechnet eine Prognose und gestrichelte Zukunftswerte', () => {
-    const result = buildYearProjection(records, 2026, true, '2026-02-28', 'seasonal', [
+    const result = buildYearProjection(records, 2026, true, '2026-03-31', 'seasonal', [
       ...ICU_FALLBACK_WEIGHTS,
     ])
     expect(result.isProjected).toBe(true)
     expect(result.ytd).toBe(2)
     // Prognose > Ist (Jahr geht weiter).
     expect(result.yearEnd).toBeGreaterThan(result.ytd)
-    // Ist nur bis Februar, danach null; Prognose ab Februar gesetzt.
+    // Ist kumuliert bis März (Stichtag), danach null.
     expect(result.chart[0].ist).toBe(1) // Januar
     expect(result.chart[1].ist).toBe(2) // Februar
-    expect(result.chart[2].ist).toBeNull() // März: kein Ist mehr
+    expect(result.chart[2].ist).toBe(2) // März: kein neuer Record, Kumulat bleibt
+    expect(result.chart[3].ist).toBeNull() // April: kein Ist mehr
     expect(result.chart[11].prognose).not.toBeNull() // Dezember: Prognose
+  })
+
+  it('rechnet bei zu dünner Datenbasis (< 3 Monate) nicht hoch', () => {
+    const result = buildYearProjection(records, 2026, true, '2026-02-28', 'seasonal', [
+      ...ICU_FALLBACK_WEIGHTS,
+    ])
+    expect(result.isProjected).toBe(false)
+    expect(result.insufficientData).toBe(true)
+    expect(result.confidence).toBe(0)
+    // Jahresende bleibt auf dem Ist-Stand — keine erfundene Zahl.
+    expect(result.yearEnd).toBe(result.ytd)
+    // Ist-Kurve bleibt sichtbar, aber keine Prognoselinie.
+    expect(result.chart[1].ist).toBe(2)
+    expect(result.chart.every((p) => p.prognose === null)).toBe(true)
+  })
+
+  it('liefert für Vorjahre weder Prognose noch Konfidenz', () => {
+    const result = buildYearProjection(records, 2026, false, '2027-05-10', 'seasonal', [
+      ...ICU_FALLBACK_WEIGHTS,
+    ])
+    expect(result.isProjected).toBe(false)
+    expect(result.insufficientData).toBe(false)
+    expect(result.confidence).toBe(0)
   })
 })
