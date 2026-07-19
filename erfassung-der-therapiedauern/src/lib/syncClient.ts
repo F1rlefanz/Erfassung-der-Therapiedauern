@@ -2,6 +2,7 @@ import { io, type Socket } from 'socket.io-client'
 import type { Patient, TherapyRecord } from '../types'
 import type { MonthlyAggregate } from './projections/types'
 import type { SeverityStat } from './severity/types'
+import type { OpenTherapy } from './episodes/types'
 
 /**
  * Socket.io-Anbindung an den lokalen On-Premise-Server (Intranet).
@@ -23,6 +24,7 @@ export interface LocalSnapshot {
   patients: Patient[]
   records: TherapyRecord[]
   severityStats: SeverityStat[]
+  openTherapies: OpenTherapy[]
   /**
    * Offline gelöschte IDs („Grabsteine"). Ohne sie käme ein offline gelöschter
    * Eintrag beim nächsten `sync:init` vom Server zurück, weil der Merge nur
@@ -41,6 +43,9 @@ export interface SyncHandlers {
   onSeverityUpsert: (stat: SeverityStat) => void
   onPatientDelete: (id: string) => void
   onRecordDelete: (id: string) => void
+  onOpenTherapyInit: (open: OpenTherapy[]) => void
+  onOpenTherapyUpsert: (open: OpenTherapy) => void
+  onOpenTherapyDelete: (id: string) => void
   onStatusChange: (status: SyncStatus) => void
   getLocalSnapshot: () => LocalSnapshot
   /** Wird nach erfolgreichem Reconnect-Push aufgerufen: Grabsteine sind zugestellt. */
@@ -65,6 +70,7 @@ export function initSync(handlers: SyncHandlers): () => void {
     for (const patient of snapshot.patients) s.emit('patient:upsert', patient)
     for (const record of snapshot.records) s.emit('record:upsert', record)
     for (const stat of snapshot.severityStats) s.emit('severity_stat:upsert', stat)
+    for (const open of snapshot.openTherapies) s.emit('open_therapy:upsert', open)
     handlers.onTombstonesFlushed()
   })
   s.on('disconnect', () => handlers.onStatusChange('offline'))
@@ -78,6 +84,9 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('severity_stat:upsert', handlers.onSeverityUpsert)
   s.on('patient:delete', handlers.onPatientDelete)
   s.on('record:delete', handlers.onRecordDelete)
+  s.on('sync:open_therapies', handlers.onOpenTherapyInit)
+  s.on('open_therapy:upsert', handlers.onOpenTherapyUpsert)
+  s.on('open_therapy:delete', handlers.onOpenTherapyDelete)
 
   return () => {
     s.disconnect()
@@ -109,4 +118,12 @@ export function pushPatientDelete(id: string): void {
 
 export function pushRecordDelete(id: string): void {
   if (socket?.connected) socket.emit('record:delete', id)
+}
+
+export function pushOpenTherapyUpsert(open: OpenTherapy): void {
+  if (socket?.connected) socket.emit('open_therapy:upsert', open)
+}
+
+export function pushOpenTherapyDelete(id: string): void {
+  if (socket?.connected) socket.emit('open_therapy:delete', id)
 }

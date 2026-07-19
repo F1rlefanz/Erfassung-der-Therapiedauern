@@ -49,6 +49,9 @@ io.on('connection', (socket) => {
   // Manuelle Schweregrad-Kennzahlen (Fälle / TISS-28).
   socket.emit('sync:severity_stats', db.getAllSeverityStats())
 
+  // Aktuell laufende Therapien (gemerkter Start ohne Ende).
+  socket.emit('sync:open_therapies', db.getAllOpenTherapies())
+
   socket.on('patient:upsert', (patient) => {
     try {
       db.upsertPatient(patient)
@@ -93,6 +96,24 @@ io.on('connection', (socket) => {
       socket.broadcast.emit('severity_stat:upsert', stat)
     } catch (err) {
       console.error('[server] severity_stat:upsert fehlgeschlagen:', err.message)
+    }
+  })
+
+  socket.on('open_therapy:upsert', (open) => {
+    try {
+      db.upsertOpenTherapy(open)
+      socket.broadcast.emit('open_therapy:upsert', open)
+    } catch (err) {
+      console.error('[server] open_therapy:upsert fehlgeschlagen:', err.message)
+    }
+  })
+
+  socket.on('open_therapy:delete', (id) => {
+    try {
+      db.deleteOpenTherapy(id)
+      socket.broadcast.emit('open_therapy:delete', id)
+    } catch (err) {
+      console.error('[server] open_therapy:delete fehlgeschlagen:', err.message)
     }
   })
 

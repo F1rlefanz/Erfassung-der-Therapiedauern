@@ -2,10 +2,12 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { Patient, TherapyRecord, TherapyType } from '../types'
 import { idbStorage } from '../lib/idbStorage'
-import { previousDay, todayISO } from '../lib/date'
+import { todayISO } from '../lib/date'
 import {
   initSync,
   isSyncConnected,
+  pushOpenTherapyDelete,
+  pushOpenTherapyUpsert,
   pushPatientDelete,
   pushPatientUpsert,
   pushRecordDelete,
@@ -16,6 +18,28 @@ import {
 } from '../lib/syncClient'
 import type { MonthlyAggregate } from '../lib/projections/types'
 import { severityId, type SeverityStat, type SeverityUnit } from '../lib/severity/types'
+import {
+  hourStamp,
+  overlayOpenTherapies,
+  parseHourStamp,
+  slotIndex,
+  stampFromSlot,
+} from '../lib/episodes/episodes'
+import { openTherapyId, type HourStamp, type OpenTherapy } from '../lib/episodes/types'
+
+/**
+ * Aktuelle Stunde als lokaler Stundenstempel (`YYYY-MM-DDTHH`). Grundlage dafür,
+ * dass laufende Therapien „bis jetzt" abgeleitet werden. Wird zur Laufzeit per
+ * Timer aktualisiert (siehe {@link TherapyState.setNow}); in Tests explizit
+ * gesetzt.
+ */
+export function nowHourStamp(): HourStamp {
+  const d = new Date()
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`
+  return hourStamp(date, d.getHours())
+}
 
 /** Anzahl Stunden pro Tag (Index 0–23). */
 export const HOURS_PER_DAY = 24
@@ -181,7 +205,18 @@ interface TherapyState {
   // ---- Persistenter Zustand (IndexedDB, offline-first) ----
   selectedDate: string
   patients: Patient[]
+  /**
+   * Konkret erfasste Stunden (abgeschlossene/historische Wahrheit). Laufende
+   * Therapien liegen separat in {@link openTherapies} und werden erst beim
+   * Beenden hier materialisiert. Alle Verbraucher lesen die *effektiven* Records
+   * (Basis + Overlay) über {@link selectEffectiveRecords}.
+   */
   therapyRecords: TherapyRecord[]
+  /** Aktuell laufende Therapien (gemerkter Start ohne Ende). */
+  openTherapies: OpenTherapy[]
+
+  // ---- Ephemerer „jetzt"-Stempel (Timer-getickt) für offene Therapien ----
+  nowStamp: HourStamp
 
   // ---- Ephemerer Paint-Zustand (Mouse-Down + Drag) ----
   isPainting: boolean
@@ -218,17 +253,30 @@ interface TherapyState {
   startPaint: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   paintOver: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   endPaint: () => void
+
+  // ---- Laufende Therapien (Start merken, bis „jetzt" ableiten) ----
+  /** Aktualisiert den „jetzt"-Stempel (Timer). Lässt offene Therapien mitwachsen. */
+  setNow: (stamp: HourStamp) => void
   /**
-   * Übernimmt laufende Therapien vom Vortag: Therapien, die gestern um 23 Uhr
-   * noch aktiv waren, werden heute ab Stunde 0 fortgesetzt. Gibt die Anzahl der
-   * fortgeführten Therapien zurück.
+   * Startet eine laufende Therapie ab der aktuellen Stunde. Existiert bereits
+   * eine offene Therapie für (Patient, Art), bleibt deren Start erhalten.
    */
-  carryOverFromPreviousDay: () => number
+  startTherapyNow: (patientId: string, therapyType: TherapyType) => void
+  /**
+   * Beendet eine laufende Therapie: die bis zum Ende belegten Stunden werden in
+   * {@link therapyRecords} materialisiert (konkrete Historie), der offene
+   * Eintrag entfernt. `endStamp` (letzte aktive Stunde, inklusiv) erlaubt es,
+   * ein verpasstes Ende nachzutragen; ohne Angabe gilt die aktuelle Stunde.
+   */
+  endTherapy: (patientId: string, therapyType: TherapyType, endStamp?: HourStamp) => void
+  mergeRemoteOpenTherapy: (open: OpenTherapy) => void
+  applyRemoteOpenSnapshot: (open: OpenTherapy[]) => void
 
   // ---- Sync (lokaler Server via Socket.io) ----
   startSync: () => () => void
   mergeRemotePatient: (patient: Patient) => void
   mergeRemoteRecord: (record: TherapyRecord) => void
+  mergeRemoteOpenTherapyDelete: (id: string) => void
   applyRemoteSnapshot: (snapshot: { patients: Patient[]; records: TherapyRecord[] }) => void
 
   // ---- Schweregrad-Kennzahlen (manuelle Eingaben) ----
@@ -265,6 +313,8 @@ export const useTherapyStore = create<TherapyState>()(
       selectedDate: todayISO(),
       patients: [],
       therapyRecords: [],
+      openTherapies: [],
+      nowStamp: nowHourStamp(),
 
       isPainting: false,
       paintValue: true,
@@ -370,39 +420,68 @@ export const useTherapyStore = create<TherapyState>()(
 
       endPaint: () => set({ isPainting: false, paintTarget: null }),
 
-      carryOverFromPreviousDay: () => {
-        const { selectedDate, therapyRecords } = get()
-        const fromDate = previousDay(selectedDate)
-        // Therapien, die gestern um 23 Uhr noch liefen, gelten als durchgehend.
-        const continuing = therapyRecords.filter(
-          (r) => r.date === fromDate && r.hours[HOURS_PER_DAY - 1] === true,
-        )
+      // ---- Laufende Therapien ----
 
-        let count = 0
-        for (const r of continuing) {
-          const alreadyRunning = get().therapyRecords.some(
-            (t) =>
-              t.patientId === r.patientId &&
-              t.date === selectedDate &&
-              t.therapyType === r.therapyType &&
-              t.hours[0] === true,
-          )
-          if (alreadyRunning) continue
-          set((state) => ({
-            therapyRecords: applyHour(
-              state.therapyRecords,
-              r.patientId,
-              selectedDate,
-              r.therapyType,
-              0,
-              true,
-            ),
-          }))
-          scheduleRecordPush(r.patientId, selectedDate, r.therapyType)
-          count += 1
+      setNow: (stamp) => set({ nowStamp: stamp }),
+
+      startTherapyNow: (patientId, therapyType) => {
+        const id = openTherapyId(patientId, therapyType)
+        // Läuft schon → Start unangetastet lassen (kein „Neustart").
+        if (get().openTherapies.some((o) => o.id === id)) return
+
+        const open: OpenTherapy = {
+          id,
+          patientId,
+          therapyType,
+          startAt: get().nowStamp,
+          lastUpdatedAt: new Date().toISOString(),
         }
-        return count
+        set((state) => ({ openTherapies: upsertById(state.openTherapies, open) }))
+        pushOpenTherapyUpsert(open)
       },
+
+      endTherapy: (patientId, therapyType, endStamp) => {
+        const id = openTherapyId(patientId, therapyType)
+        const open = get().openTherapies.find((o) => o.id === id)
+        if (!open) return
+
+        const end = endStamp ?? get().nowStamp
+        const startSlot = slotIndex(open.startAt)
+        const endSlot = slotIndex(end) // letzte aktive Stunde, inklusiv
+
+        // Belegte Stunden in die konkrete Historie schreiben und pushen.
+        let records = get().therapyRecords
+        const touchedDays = new Set<string>()
+        for (let slot = startSlot; slot <= endSlot; slot++) {
+          const { date, hour } = parseHourStamp(stampFromSlot(slot))
+          records = applyHour(records, patientId, date, therapyType, hour, true)
+          touchedDays.add(date)
+        }
+
+        set((state) => ({
+          therapyRecords: records,
+          openTherapies: state.openTherapies.filter((o) => o.id !== id),
+        }))
+        for (const date of touchedDays) scheduleRecordPush(patientId, date, therapyType)
+        pushOpenTherapyDelete(id)
+      },
+
+      mergeRemoteOpenTherapy: (open) =>
+        set((state) => {
+          const existing = state.openTherapies.find((o) => o.id === open.id)
+          if (existing && existing.lastUpdatedAt > open.lastUpdatedAt) return {}
+          return { openTherapies: upsertById(state.openTherapies, open) }
+        }),
+
+      applyRemoteOpenSnapshot: (open) =>
+        set((state) => {
+          let merged = state.openTherapies
+          for (const o of open) merged = upsertById(merged, o)
+          return { openTherapies: merged }
+        }),
+
+      mergeRemoteOpenTherapyDelete: (id) =>
+        set((state) => ({ openTherapies: state.openTherapies.filter((o) => o.id !== id) })),
 
       // ---- Sync ----
 
@@ -417,11 +496,15 @@ export const useTherapyStore = create<TherapyState>()(
           onSeverityUpsert: (stat) => get().mergeRemoteSeverity(stat),
           onPatientDelete: (id) => get().mergeRemotePatientDelete(id),
           onRecordDelete: (id) => get().mergeRemoteRecordDelete(id),
+          onOpenTherapyInit: (open) => get().applyRemoteOpenSnapshot(open),
+          onOpenTherapyUpsert: (open) => get().mergeRemoteOpenTherapy(open),
+          onOpenTherapyDelete: (id) => get().mergeRemoteOpenTherapyDelete(id),
           onTombstonesFlushed: () => get().clearTombstones(),
           getLocalSnapshot: () => ({
             patients: get().patients,
             records: get().therapyRecords,
             severityStats: get().severityStats,
+            openTherapies: get().openTherapies,
             deletedPatientIds: get().deletedPatientIds,
             deletedRecordIds: get().deletedRecordIds,
           }),
@@ -487,23 +570,38 @@ export const useTherapyStore = create<TherapyState>()(
             (r) => r.patientId === patientId && r.therapyType === therapyType,
           )
           .map((r) => r.id)
-        if (ids.length === 0) return
-        removeRecords(set, ids)
-        for (const id of ids) pushRecordDelete(id)
+        // Ggf. laufende Therapie derselben Art mit entfernen.
+        const openId = openTherapyId(patientId, therapyType)
+        const hadOpen = get().openTherapies.some((o) => o.id === openId)
+        if (ids.length === 0 && !hadOpen) return
+        if (ids.length > 0) {
+          removeRecords(set, ids)
+          for (const id of ids) pushRecordDelete(id)
+        }
+        if (hadOpen) {
+          set((state) => ({ openTherapies: state.openTherapies.filter((o) => o.id !== openId) }))
+          pushOpenTherapyDelete(openId)
+        }
       },
 
       deletePatient: (patientId) => {
         const ids = get()
           .therapyRecords.filter((r) => r.patientId === patientId)
           .map((r) => r.id)
+        const openIds = get()
+          .openTherapies.filter((o) => o.patientId === patientId)
+          .map((o) => o.id)
         set((state) => ({
           patients: state.patients.filter((p) => p.id !== patientId),
-          // Records mitlöschen — sonst zählten sie ohne Patient weiter mit.
+          // Records + laufende Therapien mitlöschen — sonst zählten sie ohne
+          // Patient weiter mit.
           therapyRecords: state.therapyRecords.filter((r) => r.patientId !== patientId),
+          openTherapies: state.openTherapies.filter((o) => o.patientId !== patientId),
           deletedPatientIds: appendTombstones(state.deletedPatientIds, [patientId]),
           deletedRecordIds: appendTombstones(state.deletedRecordIds, ids),
         }))
-        pushPatientDelete(patientId) // Server kaskadiert die Records selbst
+        pushPatientDelete(patientId) // Server kaskadiert Records + offene Therapien
+        for (const id of openIds) pushOpenTherapyDelete(id)
       },
 
       mergeRemotePatientDelete: (id) =>
@@ -567,6 +665,10 @@ export const useTherapyStore = create<TherapyState>()(
         monthlyHistory: state.monthlyHistory,
         // Manuelle Schweregrad-Eingaben offline-first mitpersistieren.
         severityStats: state.severityStats,
+        // Laufende Therapien MÜSSEN persistiert werden — der gemerkte Start ist
+        // die Grundlage dafür, nach einem Absturz/Neustart bis „jetzt"
+        // nachzurechnen (nowStamp selbst ist flüchtig und wird neu gesetzt).
+        openTherapies: state.openTherapies,
         // Grabsteine müssen einen Neustart überleben — sonst kommt ein offline
         // gelöschter Eintrag beim nächsten Sync wieder zurück.
         deletedPatientIds: state.deletedPatientIds,
@@ -661,9 +763,29 @@ export function getSeverityStat(
 }
 
 /**
+ * Effektive Records = konkrete Basis + laufende Therapien (bis „jetzt"). Diese
+ * Liste lesen ALLE Verbraucher (Statistik, Export, Raster). Reine Ableitung; der
+ * Aufrufer memoisiert über [therapyRecords, openTherapies, nowStamp].
+ */
+export function selectEffectiveRecords(state: TherapyState): TherapyRecord[] {
+  return overlayOpenTherapies(state.therapyRecords, state.openTherapies, state.nowStamp)
+}
+
+/** Offene Therapie für (Patient, Art) oder undefined. */
+export function getOpenTherapy(
+  state: TherapyState,
+  patientId: string,
+  therapyType: TherapyType,
+): OpenTherapy | undefined {
+  const id = openTherapyId(patientId, therapyType)
+  return state.openTherapies.find((o) => o.id === id)
+}
+
+/**
  * Liest das 24-Stunden-Array für (Patient, Therapieart) am aktuell gewählten
- * Datum. Fehlt der Record, wird ein leeres Array zurückgegeben. Als eigenständige
- * Funktion nutzbar in Zustand-Selektoren (Row-Ebene) ohne Extra-Renders.
+ * Datum — inklusive einer eventuell laufenden Therapie (bis „jetzt"). Fehlt jede
+ * Belegung, wird ein leeres Array zurückgegeben. Row-Ebenen-Selektor ohne
+ * Extra-Renders (nur der eigene Tag wird betrachtet).
  */
 export function getHours(
   state: TherapyState,
@@ -676,7 +798,13 @@ export function getHours(
       r.date === state.selectedDate &&
       r.therapyType === therapyType,
   )
-  return record ? record.hours : EMPTY_HOURS
+  const open = getOpenTherapy(state, patientId, therapyType)
+  if (!open) return record ? record.hours : EMPTY_HOURS
+
+  // Laufende Therapie: Basis-Stunden mit der Overlay-Deckung des Tages verbinden.
+  const overlaid = overlayOpenTherapies(record ? [record] : [], [open], state.nowStamp)
+  const forDay = overlaid.find((r) => r.date === state.selectedDate)
+  return forDay ? forDay.hours : record ? record.hours : EMPTY_HOURS
 }
 
 /** Geteilte, unveränderliche Referenz für „keine Stunden aktiv" (stabile Identität). */

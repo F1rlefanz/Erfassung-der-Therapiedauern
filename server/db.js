@@ -45,6 +45,16 @@ db.exec(`
     cases       INTEGER NOT NULL DEFAULT 0,
     tiss_points INTEGER NOT NULL DEFAULT 0
   );
+
+  -- Aktuell laufende Therapien (gemerkter Start ohne Ende). Der Start übersteht
+  -- Server-Neustarts, sodass Clients jederzeit bis zur aktuellen Stunde ableiten.
+  CREATE TABLE IF NOT EXISTS open_therapies (
+    id              TEXT PRIMARY KEY,
+    patient_id      TEXT NOT NULL,
+    therapy_type    TEXT NOT NULL,
+    start_at        TEXT NOT NULL,
+    last_updated_at TEXT NOT NULL
+  );
 `)
 
 // ---- Mapper: DB-Row <-> Wire-Modell (camelCase, wie im Client) ----
@@ -119,18 +129,20 @@ function upsertRecord(record) {
 const stmtDeleteRecord = db.prepare('DELETE FROM therapy_records WHERE id = ?')
 const stmtDeletePatient = db.prepare('DELETE FROM patients WHERE id = ?')
 const stmtDeleteRecordsOfPatient = db.prepare('DELETE FROM therapy_records WHERE patient_id = ?')
+const stmtDeleteOpenOfPatient = db.prepare('DELETE FROM open_therapies WHERE patient_id = ?')
 
 function deleteRecord(id) {
   stmtDeleteRecord.run(id)
 }
 
 /**
- * Löscht einen Patienten samt aller seiner Therapie-Records. Beides in einer
- * Transaktion — ein Patient ohne Records wäre unsichtbar, Records ohne Patient
- * würden weiter in die Statistik zählen.
+ * Löscht einen Patienten samt aller seiner Therapie-Records und laufenden
+ * Therapien. Alles in einer Transaktion — ein Patient ohne Records wäre
+ * unsichtbar, Records/offene Therapien ohne Patient würden weiter mitzählen.
  */
 const deletePatient = db.transaction((patientId) => {
   stmtDeleteRecordsOfPatient.run(patientId)
+  stmtDeleteOpenOfPatient.run(patientId)
   stmtDeletePatient.run(patientId)
 })
 
@@ -205,9 +217,49 @@ function upsertSeverityStat(stat) {
   })
 }
 
-/** Leert beide Tabellen (für den deterministischen Seeder / Clean Slate). */
+// ---- Laufende Therapien ----
+
+const stmtAllOpenTherapies = db.prepare('SELECT * FROM open_therapies')
+const stmtUpsertOpenTherapy = db.prepare(`
+  INSERT INTO open_therapies (id, patient_id, therapy_type, start_at, last_updated_at)
+  VALUES (@id, @patientId, @therapyType, @startAt, @lastUpdatedAt)
+  ON CONFLICT(id) DO UPDATE SET
+    start_at        = excluded.start_at,
+    last_updated_at = excluded.last_updated_at
+`)
+const stmtDeleteOpenTherapy = db.prepare('DELETE FROM open_therapies WHERE id = ?')
+
+function rowToOpenTherapy(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    therapyType: row.therapy_type,
+    startAt: row.start_at,
+    lastUpdatedAt: row.last_updated_at,
+  }
+}
+
+function getAllOpenTherapies() {
+  return stmtAllOpenTherapies.all().map(rowToOpenTherapy)
+}
+
+function upsertOpenTherapy(open) {
+  stmtUpsertOpenTherapy.run({
+    id: open.id,
+    patientId: open.patientId,
+    therapyType: open.therapyType,
+    startAt: open.startAt,
+    lastUpdatedAt: open.lastUpdatedAt,
+  })
+}
+
+function deleteOpenTherapy(id) {
+  stmtDeleteOpenTherapy.run(id)
+}
+
+/** Leert die Tabellen (für den deterministischen Seeder / Clean Slate). */
 function clearAll() {
-  db.exec('DELETE FROM therapy_records; DELETE FROM patients;')
+  db.exec('DELETE FROM therapy_records; DELETE FROM open_therapies; DELETE FROM patients;')
 }
 
 /** Führt `work` in einer einzigen Transaktion aus (schnelles Bulk-Insert). */
@@ -224,6 +276,9 @@ module.exports = {
   getMonthlyVentilationAggregates,
   getAllSeverityStats,
   upsertSeverityStat,
+  getAllOpenTherapies,
+  upsertOpenTherapy,
+  deleteOpenTherapy,
   deleteRecord,
   deletePatient,
   clearAll,

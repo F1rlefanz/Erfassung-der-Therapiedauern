@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { getHours, useTherapyStore } from './therapyStore'
+import { getHours, selectEffectiveRecords, useTherapyStore } from './therapyStore'
 
 /** Bequemer Zugriff auf den aktuellen Store-Zustand in Tests. */
 const s = () => useTherapyStore.getState()
@@ -10,6 +10,8 @@ beforeEach(() => {
     selectedDate: '2026-07-16',
     patients: [],
     therapyRecords: [],
+    openTherapies: [],
+    nowStamp: '2026-07-16T23',
     isPainting: false,
     paintValue: true,
     paintTarget: null,
@@ -268,25 +270,87 @@ describe('Sync-Merge (Remote-Events)', () => {
   })
 })
 
-describe('Continuation (Vortag fortführen)', () => {
-  it('setzt eine gestern um 23 Uhr laufende Therapie heute ab Stunde 0 fort', () => {
+describe('Laufende Therapien (Start merken, bis „jetzt" ableiten)', () => {
+  it('füllt eine laufende Therapie im Raster bis zur aktuellen Stunde', () => {
     const pid = addPatient()
-    // Vortag (2026-07-16): Beatmung läuft um 23 Uhr noch.
-    s().toggleHour(pid, 'beatmung', 23)
-    s().setSelectedDate('2026-07-17')
+    s().setSelectedDate('2026-07-16')
+    // Start um 0 Uhr, danach vergeht Zeit bis 12 Uhr (Tick).
+    useTherapyStore.setState({ nowStamp: '2026-07-16T00' })
+    s().startTherapyNow(pid, 'beatmung')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T12' })
 
-    const carried = s().carryOverFromPreviousDay()
-    expect(carried).toBe(1)
-    expect(getHours(s(), pid, 'beatmung')[0]).toBe(true)
+    const hours = getHours(s(), pid, 'beatmung')
+    expect(hours.slice(0, 13).every(Boolean)).toBe(true) // 00..12
+    expect(hours[13]).toBe(false)
   })
 
-  it('führt Therapien nicht fort, die um 23 Uhr nicht mehr liefen', () => {
+  it('läuft über Mitternacht weiter (Folgetag ab 0 Uhr gefüllt)', () => {
     const pid = addPatient()
-    s().toggleHour(pid, 'beatmung', 5) // endet vor Mitternacht
-    s().setSelectedDate('2026-07-17')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T20' })
+    s().startTherapyNow(pid, 'beatmung')
 
-    expect(s().carryOverFromPreviousDay()).toBe(0)
-    expect(getHours(s(), pid, 'beatmung').some(Boolean)).toBe(false)
+    // Nächster Tag, Uhr weiter.
+    useTherapyStore.setState({ nowStamp: '2026-07-17T03', selectedDate: '2026-07-17' })
+    const hours = getHours(s(), pid, 'beatmung')
+    expect(hours.slice(0, 4).every(Boolean)).toBe(true) // 00..03
+    expect(hours[4]).toBe(false)
+  })
+
+  it('startTherapyNow ändert einen bestehenden Start nicht', () => {
+    const pid = addPatient()
+    useTherapyStore.setState({ nowStamp: '2026-07-16T08' })
+    s().startTherapyNow(pid, 'beatmung')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T15' })
+    s().startTherapyNow(pid, 'beatmung') // erneut → kein Neustart
+    expect(s().openTherapies[0].startAt).toBe('2026-07-16T08')
+  })
+
+  it('materialisiert die gelaufenen Stunden beim Beenden und entfernt die offene Therapie', () => {
+    const pid = addPatient()
+    s().setSelectedDate('2026-07-16')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T10' })
+    s().startTherapyNow(pid, 'beatmung')
+
+    useTherapyStore.setState({ nowStamp: '2026-07-16T14' })
+    s().endTherapy(pid, 'beatmung') // Ende = jetzt (14), inklusiv
+
+    expect(s().openTherapies).toHaveLength(0)
+    // Konkrete Historie: 10..14 gesetzt (5 Stunden).
+    const rec = s().therapyRecords.find((r) => r.patientId === pid && r.date === '2026-07-16')!
+    expect(rec.hours.slice(10, 15).every(Boolean)).toBe(true)
+    expect(rec.hours[15]).toBe(false)
+    // Danach nicht mehr „laufend": Raster wächst nicht weiter.
+    useTherapyStore.setState({ nowStamp: '2026-07-16T20' })
+    expect(getHours(s(), pid, 'beatmung')[16]).toBe(false)
+  })
+
+  it('erlaubt ein nachgetragenes (früheres) Ende', () => {
+    const pid = addPatient()
+    useTherapyStore.setState({ nowStamp: '2026-07-16T15', selectedDate: '2026-07-16' })
+    s().startTherapyNow(pid, 'beatmung') // Start 15 Uhr
+    useTherapyStore.setState({ nowStamp: '2026-07-16T23' }) // Ende verpasst
+
+    s().endTherapy(pid, 'beatmung', '2026-07-16T18') // Ende auf 18 Uhr nachtragen
+    const rec = s().therapyRecords.find((r) => r.patientId === pid)!
+    expect(rec.hours.slice(15, 19).every(Boolean)).toBe(true) // 15..18
+    expect(rec.hours[19]).toBe(false)
+  })
+
+  it('laufende Therapie zählt in den effektiven Records mit', () => {
+    const pid = addPatient()
+    useTherapyStore.setState({ nowStamp: '2026-07-16T00', selectedDate: '2026-07-16' })
+    s().startTherapyNow(pid, 'crrt')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T05' })
+    const eff = selectEffectiveRecords(s())
+    const rec = eff.find((r) => r.therapyType === 'crrt' && r.date === '2026-07-16')
+    expect(rec?.hours.slice(0, 6).every(Boolean)).toBe(true) // 00..05
+  })
+
+  it('entfernt beim Löschen des Patienten auch die laufende Therapie', () => {
+    const pid = addPatient()
+    s().startTherapyNow(pid, 'beatmung')
+    s().deletePatient(pid)
+    expect(s().openTherapies).toHaveLength(0)
   })
 })
 
