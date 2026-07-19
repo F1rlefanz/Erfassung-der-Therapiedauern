@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TherapyRecord, TherapyType } from '../../types'
-import type { TherapyEpisode } from './types'
+import type { OpenTherapy, TherapyEpisode } from './types'
 import {
   episodeDays,
   episodeHours,
@@ -9,6 +9,7 @@ import {
   isOpen,
   LONG_TERM_DAYS,
   openEpisodeLevel,
+  overlayOpenTherapies,
   recordsToEpisodes,
   REVIEW_DAYS,
   slotIndex,
@@ -205,5 +206,59 @@ describe('Migration: Records → Episoden', () => {
     const eps = recordsToEpisodes([original])
     const derived = hoursForDay(eps, 'p1', 'beatmung', '2026-07-16', '2026-07-16T23')
     expect(derived).toEqual(original.hours)
+  })
+})
+
+describe('Overlay laufender Therapien', () => {
+  const ot = (startAt: string, patientId = 'p1', therapyType: TherapyType = 'beatmung'): OpenTherapy => ({
+    id: `${patientId}__${therapyType}`,
+    patientId,
+    therapyType,
+    startAt,
+    lastUpdatedAt: '2026-07-16T00:00:00.000Z',
+  })
+
+  const hoursOf = (records: ReturnType<typeof rec>[], patientId: string, date: string, tt: TherapyType) =>
+    records.find((r) => r.patientId === patientId && r.date === date && r.therapyType === tt)?.hours
+
+  it('gibt die Basis unverändert zurück, wenn nichts läuft', () => {
+    const base = [rec('p1', '2026-07-16', 'beatmung', [8])]
+    expect(overlayOpenTherapies(base, [], '2026-07-16T12')).toBe(base)
+  })
+
+  it('füllt eine offene Therapie bis einschließlich der aktuellen Stunde', () => {
+    const result = overlayOpenTherapies([], [ot('2026-07-16T08')], '2026-07-16T12')
+    const hours = hoursOf(result, 'p1', '2026-07-16', 'beatmung')!
+    expect(hours.slice(8, 13).every(Boolean)).toBe(true) // 08..12
+    expect(hours[7]).toBe(false)
+    expect(hours[13]).toBe(false)
+  })
+
+  it('überspannt mehrere Tage und füllt Zwischentage vollständig', () => {
+    const result = overlayOpenTherapies([], [ot('2026-07-16T20')], '2026-07-18T05')
+    expect(hoursOf(result, 'p1', '2026-07-16', 'beatmung')!.slice(20).every(Boolean)).toBe(true)
+    expect(hoursOf(result, 'p1', '2026-07-17', 'beatmung')!.every(Boolean)).toBe(true) // ganzer Tag
+    expect(hoursOf(result, 'p1', '2026-07-18', 'beatmung')!.slice(0, 6).every(Boolean)).toBe(true)
+    expect(hoursOf(result, 'p1', '2026-07-18', 'beatmung')![6]).toBe(false)
+  })
+
+  it('verknüpft ODER mit vorhandenen Basis-Stunden (nichts wird gelöscht)', () => {
+    const base = [rec('p1', '2026-07-16', 'beatmung', [0, 1, 2])]
+    const result = overlayOpenTherapies(base, [ot('2026-07-16T10')], '2026-07-16T11')
+    const hours = hoursOf(result, 'p1', '2026-07-16', 'beatmung')!
+    expect(hours[0]).toBe(true) // Basis erhalten
+    expect(hours[10]).toBe(true) // Overlay ergänzt
+    expect(hours[11]).toBe(true)
+  })
+
+  it('lässt die Basis-Records unangetastet (kein Mutieren)', () => {
+    const base = [rec('p1', '2026-07-16', 'beatmung', [0])]
+    overlayOpenTherapies(base, [ot('2026-07-16T10')], '2026-07-16T11')
+    expect(base[0].hours[10]).toBe(false) // Original unverändert
+  })
+
+  it('ignoriert eine Therapie, deren Start in der Zukunft liegt', () => {
+    const result = overlayOpenTherapies([], [ot('2026-07-16T14')], '2026-07-16T12')
+    expect(hoursOf(result, 'p1', '2026-07-16', 'beatmung')).toBeUndefined()
   })
 })

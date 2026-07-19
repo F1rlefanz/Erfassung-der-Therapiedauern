@@ -31,6 +31,30 @@ export interface TherapyEpisode {
 }
 
 /**
+ * Eine aktuell laufende Therapie: gemerkter Start ohne Ende. Genau eine offene
+ * Therapie je (Patient, Therapieart) — daraus wird beim Ableiten der Records
+ * lückenlos „bis jetzt" gefüllt. Der gemerkte Start übersteht Abstürze und
+ * Server-Neustarts (persistiert + synchronisiert), sodass jederzeit bis zur
+ * aktuellen Stunde nachgerechnet werden kann, ohne dass Zeitvergehen einen
+ * Schreibvorgang braucht.
+ */
+export interface OpenTherapy {
+  /** `${patientId}__${therapyType}` — ein konfliktfreier, deterministischer Key. */
+  id: string
+  patientId: string
+  therapyType: TherapyType
+  /** Startstempel (inklusiv). */
+  startAt: HourStamp
+  /** Zeitpunkt der letzten Änderung als ISO-8601-String (für Sync-Merge). */
+  lastUpdatedAt: string
+}
+
+/** Deterministische ID einer offenen Therapie. */
+export function openTherapyId(patientId: string, therapyType: TherapyType): string {
+  return `${patientId}__${therapyType}`
+}
+
+/**
  * Dringlichkeit einer offenen Episode. Die Schwellen sind klinisch verankert:
  * Der Median der Beatmungsdauer in Deutschland liegt bei 3–4 Tagen, ab 14 Tagen
  * spricht man definitionsgemäß von Langzeitbeatmung.

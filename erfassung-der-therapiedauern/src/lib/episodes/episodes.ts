@@ -1,5 +1,5 @@
 import type { TherapyRecord, TherapyType } from '../../types'
-import type { HourStamp, OpenEpisodeLevel, TherapyEpisode } from './types'
+import type { HourStamp, OpenEpisodeLevel, OpenTherapy, TherapyEpisode } from './types'
 
 /**
  * Umrechnung zwischen Episoden (Intervallen) und dem 24-Stunden-Raster.
@@ -182,4 +182,78 @@ export function recordsToEpisodes(records: TherapyRecord[]): TherapyEpisode[] {
 /** Summe der Therapiestunden einer Episodenliste (offene bis „jetzt"). */
 export function totalEpisodeHours(episodes: TherapyEpisode[], now: HourStamp): number {
   return episodes.reduce((sum, ep) => sum + episodeHours(ep, now), 0)
+}
+
+// ---------------------------------------------------------------------------
+// Overlay: laufende Therapien auf die Basis-Records legen
+// ---------------------------------------------------------------------------
+
+const RECORD_KEY = (patientId: string, date: string, therapyType: TherapyType) =>
+  `${patientId}__${date}__${therapyType}`
+
+/** Datum (YYYY-MM-DD) aus einem absoluten Slot-Index. */
+function dateOfSlot(index: number): string {
+  return new Date(index * 3_600_000).toISOString().slice(0, 10)
+}
+
+/**
+ * Legt die laufenden Therapien über die Basis-Records und liefert die
+ * **effektive** Recordliste, die alle Verbraucher (Raster, Statistik, Export)
+ * lesen. Eine offene Therapie füllt jeden Tag von ihrem Start bis einschließlich
+ * der aktuellen Stunde; die belegten Stunden werden mit vorhandenen Basis-Stunden
+ * ODER-verknüpft (nichts wird gelöscht, nur ergänzt).
+ *
+ * Rein und deterministisch — `now` wird immer übergeben. So können abgeleitete
+ * Records ohne Persistenz „mit der Uhr wachsen": Zeitvergehen erfordert keinen
+ * Schreibvorgang, ein Absturz hinterlässt keine Lücke.
+ */
+export function overlayOpenTherapies(
+  baseRecords: TherapyRecord[],
+  open: OpenTherapy[],
+  now: HourStamp,
+): TherapyRecord[] {
+  if (open.length === 0) return baseRecords
+
+  // Records nach Key indizieren (Kopie der Stunden-Arrays, damit die Basis
+  // unverändert bleibt).
+  const byKey = new Map<string, TherapyRecord>()
+  for (const r of baseRecords) {
+    byKey.set(RECORD_KEY(r.patientId, r.date, r.therapyType), { ...r, hours: r.hours.slice() })
+  }
+
+  const nowSlot = slotIndex(now)
+
+  for (const ot of open) {
+    const startSlot = slotIndex(ot.startAt)
+    if (nowSlot < startSlot) continue // Start liegt in der Zukunft → nichts
+
+    const startDay = dateOfSlot(slotIndex(hourStamp(parseHourStamp(ot.startAt).date, 0)))
+    let dayStart = slotIndex(hourStamp(startDay, 0))
+
+    // Tag für Tag bis zum aktuellen Tag füllen.
+    while (dayStart <= nowSlot) {
+      const date = dateOfSlot(dayStart)
+      const from = Math.max(startSlot, dayStart)
+      const to = Math.min(nowSlot + 1, dayStart + HOURS_PER_DAY) // exklusiv, inkl. „jetzt"
+
+      const key = RECORD_KEY(ot.patientId, date, ot.therapyType)
+      let rec = byKey.get(key)
+      if (!rec) {
+        rec = {
+          id: key,
+          patientId: ot.patientId,
+          date,
+          therapyType: ot.therapyType,
+          hours: Array<boolean>(HOURS_PER_DAY).fill(false),
+          lastUpdatedAt: ot.lastUpdatedAt,
+        }
+        byKey.set(key, rec)
+      }
+      for (let slot = from; slot < to; slot++) rec.hours[slot - dayStart] = true
+
+      dayStart += HOURS_PER_DAY
+    }
+  }
+
+  return [...byKey.values()]
 }
