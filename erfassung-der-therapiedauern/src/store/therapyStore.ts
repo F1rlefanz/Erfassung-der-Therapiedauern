@@ -6,7 +6,9 @@ import { previousDay, todayISO } from '../lib/date'
 import {
   initSync,
   isSyncConnected,
+  pushPatientDelete,
   pushPatientUpsert,
+  pushRecordDelete,
   pushRecordUpsert,
   pushSeverityUpsert,
   type SyncHandlers,
@@ -92,6 +94,75 @@ function applyHour(
   return records.map((r, i) => (i === idx ? updated : r))
 }
 
+/**
+ * Normalisiert eine Fallnummer für den Eindeutigkeitsvergleich: getrimmt und
+ * case-insensitiv (Fallnummern sind fachlich identisch, egal wie getippt).
+ */
+export function normalizeCaseNumber(caseNumber: string): string {
+  return caseNumber.trim().toLowerCase()
+}
+
+/** Ergebnis einer Patienten-Mutation (Anlegen oder Bearbeiten). */
+export type PatientMutationResult =
+  | { ok: true; patient: Patient }
+  | { ok: false; error: string }
+
+/**
+ * Prüft Pflichtfelder und die Eindeutigkeit der Fallnummer. `excludeId` klammert
+ * beim Bearbeiten den Patienten selbst aus — sonst wäre seine eigene Nummer ein
+ * Duplikat und er ließe sich nie speichern.
+ */
+function validatePatientInput(
+  patients: Patient[],
+  name: string,
+  caseNumber: string,
+  excludeId?: string,
+): { ok: true; name: string; caseNumber: string } | { ok: false; error: string } {
+  const trimmedName = name.trim()
+  const trimmedCase = caseNumber.trim()
+  if (!trimmedName || !trimmedCase) {
+    return { ok: false, error: 'Fallnummer und Name sind Pflichtfelder.' }
+  }
+
+  // Regel: Eine Fallnummer identifiziert genau einen Patienten. Zwei Einträge
+  // mit derselben Nummer würden in allen Statistiken als zwei Fälle zählen.
+  const duplicate = findPatientByCaseNumber(patients, trimmedCase)
+  if (duplicate && duplicate.id !== excludeId) {
+    return { ok: false, error: `Fallnummer ${trimmedCase} ist bereits vergeben (${duplicate.name}).` }
+  }
+
+  return { ok: true, name: trimmedName, caseNumber: trimmedCase }
+}
+
+/**
+ * Obergrenze der Grabstein-Listen. Sie werden nach jedem erfolgreichen Reconnect
+ * geleert und wachsen daher nur, solange der Server unerreichbar ist. Die Grenze
+ * verhindert, dass sie bei dauerhaft fehlender Verbindung unbegrenzt wachsen;
+ * die ältesten Einträge fallen zuerst heraus.
+ */
+export const MAX_TOMBSTONES = 1000
+
+/** Hängt IDs an eine Grabstein-Liste an und begrenzt sie auf {@link MAX_TOMBSTONES}. */
+function appendTombstones(existing: string[], ids: string[]): string[] {
+  const merged = [...existing, ...ids]
+  return merged.length > MAX_TOMBSTONES ? merged.slice(merged.length - MAX_TOMBSTONES) : merged
+}
+
+/**
+ * Entfernt Records lokal und merkt sie als Grabstein vor, damit eine offline
+ * erfolgte Löschung beim Reconnect nicht vom Server überschrieben wird.
+ */
+function removeRecords(
+  set: (fn: (state: TherapyState) => Partial<TherapyState>) => void,
+  ids: string[],
+): void {
+  const idSet = new Set(ids)
+  set((state) => ({
+    therapyRecords: state.therapyRecords.filter((r) => !idSet.has(r.id)),
+    deletedRecordIds: appendTombstones(state.deletedRecordIds, ids),
+  }))
+}
+
 /** Kennzeichnet die Zeile, in der gerade gemalt wird (Patient + Therapieart). */
 interface PaintTarget {
   patientId: string
@@ -126,9 +197,23 @@ interface TherapyState {
   // ---- Manuelle Schweregrad-Kennzahlen (Fälle / TISS-28) ----
   severityStats: SeverityStat[]
 
+  // ---- Grabsteine offline gelöschter Einträge (siehe LocalSnapshot) ----
+  deletedPatientIds: string[]
+  deletedRecordIds: string[]
+
   // ---- Lokale Actions (Optimistic Updates) ----
   setSelectedDate: (date: string) => void
-  addPatient: (name: string, caseNumber: string) => void
+  /**
+   * Legt einen Patienten an. Schlägt fehl, wenn Pflichtfelder leer sind oder die
+   * Fallnummer bereits vergeben ist (siehe {@link findPatientByCaseNumber}).
+   */
+  addPatient: (name: string, caseNumber: string) => PatientMutationResult
+  /**
+   * Ändert Name/Fallnummer eines Patienten. Gleiche Regeln wie beim Anlegen, nur
+   * dass die eigene Fallnummer nicht als Duplikat gilt. Die id bleibt stabil,
+   * erfasste Therapiezeiten bleiben also erhalten.
+   */
+  updatePatient: (id: string, name: string, caseNumber: string) => PatientMutationResult
   toggleHour: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   startPaint: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   paintOver: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
@@ -157,6 +242,18 @@ interface TherapyState {
   mergeRemoteSeverity: (stat: SeverityStat) => void
   applyRemoteSeveritySnapshot: (stats: SeverityStat[]) => void
 
+  // ---- Löschen ----
+  /** Leert die Stunden einer Therapieart am gewählten Tag (löscht den Record). */
+  clearTherapyDay: (patientId: string, therapyType: TherapyType) => void
+  /** Löscht ALLE Records einer Therapieart eines Patienten (über alle Tage). */
+  removeTherapyForPatient: (patientId: string, therapyType: TherapyType) => void
+  /** Löscht den Patienten samt aller seiner Records. */
+  deletePatient: (patientId: string) => void
+  mergeRemotePatientDelete: (id: string) => void
+  mergeRemoteRecordDelete: (id: string) => void
+  /** Grabsteine nach erfolgreichem Reconnect-Push leeren. */
+  clearTombstones: () => void
+
   // ---- Backup & Restore ----
   exportSnapshot: () => BackupSnapshot
   importSnapshot: (snapshot: BackupSnapshot, mode: 'replace' | 'merge') => void
@@ -176,17 +273,34 @@ export const useTherapyStore = create<TherapyState>()(
       syncStatus: 'offline',
       monthlyHistory: [],
       severityStats: [],
+      deletedPatientIds: [],
+      deletedRecordIds: [],
 
       setSelectedDate: (date) => set({ selectedDate: date }),
 
       addPatient: (name, caseNumber) => {
-        const patient: Patient = {
-          id: newId(),
-          name: name.trim(),
-          caseNumber: caseNumber.trim(),
-        }
+        const valid = validatePatientInput(get().patients, name, caseNumber)
+        if (!valid.ok) return valid
+
+        const patient: Patient = { id: newId(), name: valid.name, caseNumber: valid.caseNumber }
         set((state) => ({ patients: [...state.patients, patient] }))
         pushPatientUpsert(patient) // No-op, wenn Server offline
+        return { ok: true, patient }
+      },
+
+      updatePatient: (id, name, caseNumber) => {
+        const existing = get().patients.find((p) => p.id === id)
+        if (!existing) return { ok: false, error: 'Patient nicht gefunden.' }
+
+        const valid = validatePatientInput(get().patients, name, caseNumber, id)
+        if (!valid.ok) return valid
+
+        // Die id bleibt stabil — alle TherapyRecords hängen daran und bleiben
+        // dem Patienten dadurch erhalten.
+        const patient: Patient = { ...existing, name: valid.name, caseNumber: valid.caseNumber }
+        set((state) => ({ patients: upsertById(state.patients, patient) }))
+        pushPatientUpsert(patient)
+        return { ok: true, patient }
       },
 
       toggleHour: (patientId, therapyType, hourIndex) => {
@@ -301,10 +415,15 @@ export const useTherapyStore = create<TherapyState>()(
           onMonthlyAggregates: (aggregates) => set({ monthlyHistory: aggregates }),
           onSeverityInit: (stats) => get().applyRemoteSeveritySnapshot(stats),
           onSeverityUpsert: (stat) => get().mergeRemoteSeverity(stat),
+          onPatientDelete: (id) => get().mergeRemotePatientDelete(id),
+          onRecordDelete: (id) => get().mergeRemoteRecordDelete(id),
+          onTombstonesFlushed: () => get().clearTombstones(),
           getLocalSnapshot: () => ({
             patients: get().patients,
             records: get().therapyRecords,
             severityStats: get().severityStats,
+            deletedPatientIds: get().deletedPatientIds,
+            deletedRecordIds: get().deletedRecordIds,
           }),
         }
         return initSync(handlers)
@@ -349,6 +468,56 @@ export const useTherapyStore = create<TherapyState>()(
           for (const stat of stats) merged = upsertById(merged, stat)
           return { severityStats: merged }
         }),
+
+      // ---- Löschen ----
+
+      clearTherapyDay: (patientId, therapyType) => {
+        const date = get().selectedDate
+        const record = get().therapyRecords.find(
+          (r) => r.patientId === patientId && r.date === date && r.therapyType === therapyType,
+        )
+        if (!record) return
+        removeRecords(set, [record.id])
+        pushRecordDelete(record.id)
+      },
+
+      removeTherapyForPatient: (patientId, therapyType) => {
+        const ids = get()
+          .therapyRecords.filter(
+            (r) => r.patientId === patientId && r.therapyType === therapyType,
+          )
+          .map((r) => r.id)
+        if (ids.length === 0) return
+        removeRecords(set, ids)
+        for (const id of ids) pushRecordDelete(id)
+      },
+
+      deletePatient: (patientId) => {
+        const ids = get()
+          .therapyRecords.filter((r) => r.patientId === patientId)
+          .map((r) => r.id)
+        set((state) => ({
+          patients: state.patients.filter((p) => p.id !== patientId),
+          // Records mitlöschen — sonst zählten sie ohne Patient weiter mit.
+          therapyRecords: state.therapyRecords.filter((r) => r.patientId !== patientId),
+          deletedPatientIds: appendTombstones(state.deletedPatientIds, [patientId]),
+          deletedRecordIds: appendTombstones(state.deletedRecordIds, ids),
+        }))
+        pushPatientDelete(patientId) // Server kaskadiert die Records selbst
+      },
+
+      mergeRemotePatientDelete: (id) =>
+        set((state) => ({
+          patients: state.patients.filter((p) => p.id !== id),
+          therapyRecords: state.therapyRecords.filter((r) => r.patientId !== id),
+        })),
+
+      mergeRemoteRecordDelete: (id) =>
+        set((state) => ({
+          therapyRecords: state.therapyRecords.filter((r) => r.id !== id),
+        })),
+
+      clearTombstones: () => set({ deletedPatientIds: [], deletedRecordIds: [] }),
 
       // ---- Backup & Restore ----
 
@@ -398,6 +567,10 @@ export const useTherapyStore = create<TherapyState>()(
         monthlyHistory: state.monthlyHistory,
         // Manuelle Schweregrad-Eingaben offline-first mitpersistieren.
         severityStats: state.severityStats,
+        // Grabsteine müssen einen Neustart überleben — sonst kommt ein offline
+        // gelöschter Eintrag beim nächsten Sync wieder zurück.
+        deletedPatientIds: state.deletedPatientIds,
+        deletedRecordIds: state.deletedRecordIds,
       }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
@@ -458,6 +631,18 @@ function scheduleSeverityPush(id: string): void {
       if (latest) pushSeverityUpsert(latest)
     }, RECORD_PUSH_DEBOUNCE_MS),
   )
+}
+
+/**
+ * Sucht einen Patienten anhand der Fallnummer (normalisiert). Grundlage der
+ * Eindeutigkeitsregel: eine Fallnummer gehört zu genau einem Patienten.
+ */
+export function findPatientByCaseNumber(
+  patients: Patient[],
+  caseNumber: string,
+): Patient | undefined {
+  const needle = normalizeCaseNumber(caseNumber)
+  return patients.find((p) => normalizeCaseNumber(p.caseNumber) === needle)
 }
 
 /**

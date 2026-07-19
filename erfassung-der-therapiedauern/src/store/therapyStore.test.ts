@@ -13,6 +13,8 @@ beforeEach(() => {
     isPainting: false,
     paintValue: true,
     paintTarget: null,
+    deletedPatientIds: [],
+    deletedRecordIds: [],
   })
 })
 
@@ -27,6 +29,104 @@ describe('Patienten & Records', () => {
     s().addPatient('  Mustermann, Max  ', '  100234 ')
     expect(s().patients).toHaveLength(1)
     expect(s().patients[0]).toMatchObject({ name: 'Mustermann, Max', caseNumber: '100234' })
+  })
+
+  it('lehnt eine bereits vergebene Fallnummer ab (auch anders geschrieben/gepolstert)', () => {
+    expect(s().addPatient('Mustermann, Max', '100234').ok).toBe(true)
+
+    const duplicate = s().addPatient('Musterfrau, Erika', ' 100234 ')
+    expect(duplicate.ok).toBe(false)
+    expect(duplicate.ok === false && duplicate.error).toContain('100234')
+    // Kein zweiter Patient und kein Überschreiben des ersten.
+    expect(s().patients).toHaveLength(1)
+    expect(s().patients[0].name).toBe('Mustermann, Max')
+  })
+
+  it('lehnt leere Pflichtfelder ab', () => {
+    expect(s().addPatient('   ', '100234').ok).toBe(false)
+    expect(s().addPatient('Mustermann, Max', '  ').ok).toBe(false)
+    expect(s().patients).toHaveLength(0)
+  })
+
+  it('erlaubt verschiedene Fallnummern', () => {
+    expect(s().addPatient('Mustermann, Max', '100234').ok).toBe(true)
+    expect(s().addPatient('Musterfrau, Erika', '100235').ok).toBe(true)
+    expect(s().patients).toHaveLength(2)
+  })
+
+  it('bearbeitet einen Patienten und behält die eigene Fallnummer als gültig', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+
+    // Nur der Name ändert sich — die eigene Nummer darf kein Duplikat sein.
+    const result = s().updatePatient(pid, 'Mustermann, Moritz', '100234')
+    expect(result.ok).toBe(true)
+    expect(s().patients[0]).toMatchObject({
+      id: pid,
+      name: 'Mustermann, Moritz',
+      caseNumber: '100234',
+    })
+    // id stabil → erfasste Zeiten bleiben dem Patienten erhalten.
+    expect(getHours(s(), pid, 'beatmung')[8]).toBe(true)
+  })
+
+  it('lehnt beim Bearbeiten eine fremde, bereits vergebene Fallnummer ab', () => {
+    const first = addPatient()
+    s().addPatient('Musterfrau, Erika', '100235')
+
+    const result = s().updatePatient(first, 'Mustermann, Max', '100235')
+    expect(result.ok).toBe(false)
+    // Unverändert geblieben.
+    expect(s().patients[0].caseNumber).toBe('100234')
+  })
+
+  it('löscht nur den gewählten Tag einer Therapie', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+    s().setSelectedDate('2026-07-17')
+    s().toggleHour(pid, 'beatmung', 9)
+
+    s().clearTherapyDay(pid, 'beatmung') // aktuell 17.07.
+    expect(getHours(s(), pid, 'beatmung').some(Boolean)).toBe(false)
+
+    s().setSelectedDate('2026-07-16')
+    expect(getHours(s(), pid, 'beatmung')[8]).toBe(true)
+  })
+
+  it('entfernt eine Therapieart über alle Tage, lässt andere Arten unberührt', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+    s().toggleHour(pid, 'crrt', 8)
+    s().setSelectedDate('2026-07-17')
+    s().toggleHour(pid, 'beatmung', 9)
+
+    s().removeTherapyForPatient(pid, 'beatmung')
+
+    expect(s().therapyRecords.filter((r) => r.therapyType === 'beatmung')).toHaveLength(0)
+    expect(s().therapyRecords.filter((r) => r.therapyType === 'crrt')).toHaveLength(1)
+    // Grabsteine für beide gelöschten Beatmungs-Records vorgemerkt.
+    expect(s().deletedRecordIds).toHaveLength(2)
+  })
+
+  it('löscht einen Patienten samt aller Records und merkt Grabsteine vor', () => {
+    const pid = addPatient()
+    s().addPatient('Musterfrau, Erika', '100235')
+    s().toggleHour(pid, 'beatmung', 8)
+    s().toggleHour(pid, 'crrt', 8)
+
+    s().deletePatient(pid)
+
+    expect(s().patients).toHaveLength(1)
+    expect(s().patients[0].caseNumber).toBe('100235')
+    expect(s().therapyRecords.filter((r) => r.patientId === pid)).toHaveLength(0)
+    expect(s().deletedPatientIds).toContain(pid)
+    expect(s().deletedRecordIds).toHaveLength(2)
+  })
+
+  it('gibt eine gelöschte Fallnummer wieder frei', () => {
+    const pid = addPatient()
+    s().deletePatient(pid)
+    expect(s().addPatient('Neuer Patient', '100234').ok).toBe(true)
   })
 
   it('gibt für einen fehlenden Record ein leeres 24-Stunden-Array zurück', () => {

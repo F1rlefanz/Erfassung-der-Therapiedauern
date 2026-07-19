@@ -23,6 +23,13 @@ export interface LocalSnapshot {
   patients: Patient[]
   records: TherapyRecord[]
   severityStats: SeverityStat[]
+  /**
+   * Offline gelöschte IDs („Grabsteine"). Ohne sie käme ein offline gelöschter
+   * Eintrag beim nächsten `sync:init` vom Server zurück, weil der Merge nur
+   * Upserts kennt. Sie werden vor den Upserts gesendet.
+   */
+  deletedPatientIds: string[]
+  deletedRecordIds: string[]
 }
 
 export interface SyncHandlers {
@@ -32,8 +39,12 @@ export interface SyncHandlers {
   onMonthlyAggregates: (aggregates: MonthlyAggregate[]) => void
   onSeverityInit: (stats: SeverityStat[]) => void
   onSeverityUpsert: (stat: SeverityStat) => void
+  onPatientDelete: (id: string) => void
+  onRecordDelete: (id: string) => void
   onStatusChange: (status: SyncStatus) => void
   getLocalSnapshot: () => LocalSnapshot
+  /** Wird nach erfolgreichem Reconnect-Push aufgerufen: Grabsteine sind zugestellt. */
+  onTombstonesFlushed: () => void
 }
 
 let socket: Socket | null = null
@@ -47,9 +58,14 @@ export function initSync(handlers: SyncHandlers): () => void {
     handlers.onStatusChange('online')
     // Offline entstandene lokale Änderungen nachreichen (Reconnect-Sync).
     const snapshot = handlers.getLocalSnapshot()
+    // Löschungen ZUERST — sonst legt ein nachfolgender Upsert den gerade
+    // gelöschten Eintrag serverseitig wieder an.
+    for (const id of snapshot.deletedRecordIds) s.emit('record:delete', id)
+    for (const id of snapshot.deletedPatientIds) s.emit('patient:delete', id)
     for (const patient of snapshot.patients) s.emit('patient:upsert', patient)
     for (const record of snapshot.records) s.emit('record:upsert', record)
     for (const stat of snapshot.severityStats) s.emit('severity_stat:upsert', stat)
+    handlers.onTombstonesFlushed()
   })
   s.on('disconnect', () => handlers.onStatusChange('offline'))
   s.on('connect_error', () => handlers.onStatusChange('offline'))
@@ -60,6 +76,8 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('aggregates:monthly-ventilation', handlers.onMonthlyAggregates)
   s.on('sync:severity_stats', handlers.onSeverityInit)
   s.on('severity_stat:upsert', handlers.onSeverityUpsert)
+  s.on('patient:delete', handlers.onPatientDelete)
+  s.on('record:delete', handlers.onRecordDelete)
 
   return () => {
     s.disconnect()
@@ -82,4 +100,13 @@ export function pushRecordUpsert(record: TherapyRecord): void {
 
 export function pushSeverityUpsert(stat: SeverityStat): void {
   if (socket?.connected) socket.emit('severity_stat:upsert', stat)
+}
+
+/** Meldet eine Löschung. Offline No-op — der Grabstein holt es beim Reconnect nach. */
+export function pushPatientDelete(id: string): void {
+  if (socket?.connected) socket.emit('patient:delete', id)
+}
+
+export function pushRecordDelete(id: string): void {
+  if (socket?.connected) socket.emit('record:delete', id)
 }

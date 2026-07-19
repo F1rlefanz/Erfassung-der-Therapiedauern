@@ -114,6 +114,26 @@ function upsertRecord(record) {
   })
 }
 
+// ---- Löschen ----
+
+const stmtDeleteRecord = db.prepare('DELETE FROM therapy_records WHERE id = ?')
+const stmtDeletePatient = db.prepare('DELETE FROM patients WHERE id = ?')
+const stmtDeleteRecordsOfPatient = db.prepare('DELETE FROM therapy_records WHERE patient_id = ?')
+
+function deleteRecord(id) {
+  stmtDeleteRecord.run(id)
+}
+
+/**
+ * Löscht einen Patienten samt aller seiner Therapie-Records. Beides in einer
+ * Transaktion — ein Patient ohne Records wäre unsichtbar, Records ohne Patient
+ * würden weiter in die Statistik zählen.
+ */
+const deletePatient = db.transaction((patientId) => {
+  stmtDeleteRecordsOfPatient.run(patientId)
+  stmtDeletePatient.run(patientId)
+})
+
 // Nur Beatmungs-Records mit Datum/Stunden — die Aggregation zählt Tage mit
 // mindestens einer markierten Stunde je (Jahr, Monat). So wandern nur die
 // kompakten Monatsaggregate zum Client, nicht der gesamte Rohdatensatz.
@@ -204,6 +224,8 @@ module.exports = {
   getMonthlyVentilationAggregates,
   getAllSeverityStats,
   upsertSeverityStat,
+  deleteRecord,
+  deletePatient,
   clearAll,
   bulkWrite,
 }

@@ -68,6 +68,25 @@ io.on('connection', (socket) => {
     }
   })
 
+  socket.on('record:delete', (id) => {
+    try {
+      db.deleteRecord(id)
+      socket.broadcast.emit('record:delete', id)
+    } catch (err) {
+      console.error('[server] record:delete fehlgeschlagen:', err.message)
+    }
+  })
+
+  // Löscht den Patienten samt aller seiner Records (kaskadierend).
+  socket.on('patient:delete', (id) => {
+    try {
+      db.deletePatient(id)
+      socket.broadcast.emit('patient:delete', id)
+    } catch (err) {
+      console.error('[server] patient:delete fehlgeschlagen:', err.message)
+    }
+  })
+
   socket.on('severity_stat:upsert', (stat) => {
     try {
       db.upsertSeverityStat(stat)

@@ -3,6 +3,7 @@ import { HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
 import { THERAPY_TYPES } from '../../lib/therapyTypes'
 import TherapyRow from './TherapyRow'
 import TherapyDayTotals from './TherapyDayTotals'
+import PatientHeader from './PatientHeader'
 
 /** Breite einer Stundenzelle in rem (deckungsgleich mit `w-7` = 1.75rem). */
 const CELL_REM = 1.75
@@ -34,6 +35,7 @@ function TherapyTable() {
   const [name, setName] = useState('')
   const [caseNumber, setCaseNumber] = useState('')
   const [carryMessage, setCarryMessage] = useState<string | null>(null)
+  const [addError, setAddError] = useState<string | null>(null)
 
   // Malen endet, sobald der Zeiger irgendwo losgelassen wird — auch außerhalb
   // des Rasters. Darum global auf window lauschen.
@@ -48,8 +50,12 @@ function TherapyTable() {
 
   function handleAddPatient(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !caseNumber.trim()) return
-    addPatient(name, caseNumber)
+    const result = addPatient(name, caseNumber)
+    if (!result.ok) {
+      setAddError(result.error)
+      return
+    }
+    setAddError(null)
     setName('')
     setCaseNumber('')
   }
@@ -117,6 +123,15 @@ function TherapyTable() {
         </form>
       </div>
 
+      {addError && (
+        <p
+          className="rounded-sm border border-error/40 bg-error/5 px-3 py-2 text-sm text-error"
+          role="alert"
+        >
+          {addError}
+        </p>
+      )}
+
       {carryMessage && (
         <p className="text-sm text-ink-muted" role="status">
           {carryMessage}
@@ -134,10 +149,7 @@ function TherapyTable() {
           <div className="mt-2 space-y-5">
             {patients.map((patient) => (
               <section key={patient.id} className="space-y-1.5">
-                <header className="flex items-baseline gap-2">
-                  <h3 className="text-base font-semibold text-ink">{patient.name}</h3>
-                  <span className="text-xs text-ink-muted">Fall {patient.caseNumber}</span>
-                </header>
+                <PatientHeader patient={patient} />
                 {THERAPY_TYPES.map((meta) => (
                   <TherapyRow
                     key={meta.type}
