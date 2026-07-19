@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useTherapyStore } from '../store/therapyStore'
+import { useEffectiveRecords } from '../store/useEffectiveRecords'
 import { THERAPY_TYPES } from '../lib/therapyTypes'
 import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
 import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
@@ -26,7 +27,7 @@ import ProjectionToggle from '../components/analysen/ProjectionToggle'
 import YearSelector from '../components/YearSelector'
 
 function AnalysenPage() {
-  const records = useTherapyStore((s) => s.therapyRecords)
+  const records = useEffectiveRecords()
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
 
   const today = todayISO()

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTherapyStore } from '../store/therapyStore'
+import { useEffectiveRecords } from '../store/useEffectiveRecords'
 import { availableYears } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import YearSelector from '../components/YearSelector'
@@ -19,7 +20,7 @@ const TABS: { id: ReportingTab; label: string }[] = [
  * Beim Drucken wird nur der aktive Tab gerendert (die Tab-Leiste ist `no-print`).
  */
 function ReportingPage() {
-  const records = useTherapyStore((s) => s.therapyRecords)
+  const records = useEffectiveRecords()
   const patients = useTherapyStore((s) => s.patients)
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
 

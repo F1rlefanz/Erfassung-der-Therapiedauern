@@ -1,5 +1,6 @@
 import type { TherapyType } from '../../types'
 import { useTherapyStore } from '../../store/therapyStore'
+import { useEffectiveRecords } from '../../store/useEffectiveRecords'
 import { THERAPY_TYPES } from '../../lib/therapyTypes'
 import { therapyHours } from '../../lib/therapyCalculator'
 
@@ -13,7 +14,7 @@ import { therapyHours } from '../../lib/therapyCalculator'
  * gezählt wird, wer an diesem Tag tatsächlich behandelt wurde.
  */
 function TherapyDayTotals() {
-  const records = useTherapyStore((s) => s.therapyRecords)
+  const records = useEffectiveRecords()
   const selectedDate = useTherapyStore((s) => s.selectedDate)
 
   const hours: Record<TherapyType, number> = { beatmung: 0, crrt: 0, ila_ecmo: 0 }

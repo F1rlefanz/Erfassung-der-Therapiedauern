@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTherapyStore } from '../../store/therapyStore'
+import { useEffectiveRecords } from '../../store/useEffectiveRecords'
 import { MONTH_SHORT } from '../../lib/statistics'
 import {
   avgVentDuration,
@@ -102,7 +103,7 @@ function SeverityLegend() {
  * (optimistic + debounced Sync).
  */
 function SeverityTables({ year }: { year: number }) {
-  const records = useTherapyStore((s) => s.therapyRecords)
+  const records = useEffectiveRecords()
   const severityStats = useTherapyStore((s) => s.severityStats)
   const setSeverityInput = useTherapyStore((s) => s.setSeverityInput)
 

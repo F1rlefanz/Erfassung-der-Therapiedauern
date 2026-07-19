@@ -30,11 +30,9 @@ function TherapyTable() {
   const patients = useTherapyStore((s) => s.patients)
   const addPatient = useTherapyStore((s) => s.addPatient)
   const endPaint = useTherapyStore((s) => s.endPaint)
-  const carryOver = useTherapyStore((s) => s.carryOverFromPreviousDay)
 
   const [name, setName] = useState('')
   const [caseNumber, setCaseNumber] = useState('')
-  const [carryMessage, setCarryMessage] = useState<string | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
 
   // Malen endet, sobald der Zeiger irgendwo losgelassen wird — auch außerhalb
@@ -60,15 +58,6 @@ function TherapyTable() {
     setCaseNumber('')
   }
 
-  function handleCarryOver() {
-    const count = carryOver()
-    setCarryMessage(
-      count === 0
-        ? 'Keine laufenden Therapien vom Vortag gefunden.'
-        : `${count} laufende Therapie${count === 1 ? '' : 'n'} vom Vortag fortgeführt.`,
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Kopfzeile: Datumswahl + Übernahme + Patient hinzufügen */}
@@ -78,22 +67,10 @@ function TherapyTable() {
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value)
-              setCarryMessage(null)
-            }}
+            onChange={(e) => setSelectedDate(e.target.value)}
             className="rounded-sm border border-line bg-bg px-2 py-1 text-ink"
           />
         </label>
-
-        <button
-          type="button"
-          onClick={handleCarryOver}
-          title="Therapien, die am Vortag um 23 Uhr noch liefen, heute ab 0 Uhr fortsetzen"
-          className="rounded-sm border border-line px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          Vortag fortführen
-        </button>
 
         <form onSubmit={handleAddPatient} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm text-ink-muted">
@@ -132,12 +109,6 @@ function TherapyTable() {
         </p>
       )}
 
-      {carryMessage && (
-        <p className="text-sm text-ink-muted" role="status">
-          {carryMessage}
-        </p>
-      )}
-
       {patients.length === 0 ? (
         <div className="rounded-md border border-line bg-surface p-8 text-center text-sm text-ink-muted">
           Noch keine Patienten erfasst. Lege oben einen Patienten an, um Therapiestunden zu erfassen.
@@ -167,7 +138,8 @@ function TherapyTable() {
 
       <p className="text-xs text-ink-muted">
         Tipp: Mit gedrückter Maustaste über die Zellen wischen, um mehrere Stunden in einem Zug zu
-        markieren oder zu löschen.
+        markieren oder zu löschen. „Läuft" merkt sich den Start einer Therapie und füllt automatisch
+        bis zur aktuellen Stunde weiter — auch über Mitternacht und nach einem Neustart.
       </p>
     </div>
   )

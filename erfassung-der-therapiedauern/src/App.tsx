@@ -5,7 +5,7 @@ import DashboardPage from './pages/DashboardPage'
 import ErfassungPage from './pages/ErfassungPage'
 import ReportingPage from './pages/ReportingPage'
 import SettingsPage from './pages/SettingsPage'
-import { useTherapyStore } from './store/therapyStore'
+import { nowHourStamp, useTherapyStore } from './store/therapyStore'
 
 // Analysen lädt recharts nach — nur beim Aufruf (Code-Splitting), damit der
 // Initial-Load schlank bleibt.
@@ -16,6 +16,16 @@ function App() {
   // Unmount wieder trennen. Ohne laufenden Server bleibt die App voll
   // funktionsfähig (offline-first) und synchronisiert beim Reconnect.
   useEffect(() => useTherapyStore.getState().startSync(), [])
+
+  // „Jetzt"-Stempel regelmäßig aktualisieren, damit laufende Therapien in Raster
+  // und Statistik bis zur aktuellen Stunde mitwachsen. Einmal sofort setzen
+  // (frischer Wert nach Rehydration), danach jede Minute.
+  useEffect(() => {
+    const tick = () => useTherapyStore.getState().setNow(nowHourStamp())
+    tick()
+    const id = setInterval(tick, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <div className="flex min-h-svh flex-col bg-bg sm:flex-row">
