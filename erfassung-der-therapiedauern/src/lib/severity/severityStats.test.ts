@@ -42,6 +42,53 @@ describe('computeIcuMonthly', () => {
   })
 })
 
+describe('neue vs. fortgeführte Fälle (Monatsgrenze)', () => {
+  it('zählt einen im Vormonat beatmeten Patienten nicht als neuen Fall', () => {
+    const records = [
+      rec('p1', '2026-01-30', 'beatmung', 24),
+      rec('p1', '2026-02-01', 'beatmung', 24), // derselbe Fall, läuft weiter
+      rec('p2', '2026-02-03', 'beatmung', 12), // neu im Februar
+    ]
+    const feb = computeIcuMonthly(records, 2026, 2)
+
+    expect(feb.ventPatients).toBe(1) // nur p2 ist ein neuer Fall
+    expect(feb.continuedVentPatients).toBe(1) // p1 fortgeführt
+    // Tage und Stunden zählen unverändert voll mit.
+    expect(feb.startedVentDays).toBe(2)
+    expect(feb.ventHours).toBe(36)
+  })
+
+  it('behandelt den Jahreswechsel (Januar schaut auf Dezember des Vorjahres)', () => {
+    const records = [
+      rec('p1', '2025-12-28', 'beatmung', 24),
+      rec('p1', '2026-01-02', 'beatmung', 24),
+    ]
+    const jan = computeIcuMonthly(records, 2026, 1)
+
+    expect(jan.ventPatients).toBe(0)
+    expect(jan.continuedVentPatients).toBe(1)
+  })
+
+  it('zählt als neuen Fall, wenn im Vormonat nur eine ANDERE Therapie lief', () => {
+    const records = [
+      rec('p1', '2026-01-20', 'crrt', 24), // nur Dialyse im Januar
+      rec('p1', '2026-02-02', 'beatmung', 24), // Beatmung beginnt neu
+    ]
+    const feb = computeIcuMonthly(records, 2026, 2)
+
+    expect(feb.ventPatients).toBe(1)
+    expect(feb.continuedVentPatients).toBe(0)
+  })
+
+  it('zählt als neuen Fall, wenn im Vormonat 0 Stunden erfasst waren', () => {
+    const records = [
+      rec('p1', '2026-01-20', 'beatmung', 0),
+      rec('p1', '2026-02-02', 'beatmung', 24),
+    ]
+    expect(computeIcuMonthly(records, 2026, 2).ventPatients).toBe(1)
+  })
+})
+
 describe('abgeleitete Kennzahlen', () => {
   it('ventPercentage = ventPatients / cases * 100 (0 bei cases=0)', () => {
     expect(ventPercentage(2, 8)).toBeCloseTo(25, 10)

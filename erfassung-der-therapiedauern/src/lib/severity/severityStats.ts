@@ -13,8 +13,19 @@ export interface IcuCalculated {
   completeVentDays: number
   /** Beatmungsstunden total. */
   ventHours: number
-  /** Distinkte beatmete Patienten. */
+  /**
+   * Beatmungspatienten = **im Monat neu begonnene** Fälle. Patienten, die schon
+   * im Vormonat beatmet wurden, zählen hier NICHT mit (siehe
+   * {@link continuedVentPatients}) — ein Langlieger soll nicht Monat für Monat
+   * erneut als Fall erscheinen. Entspricht `uniqueCases` der Legacy-Anwendung.
+   */
   ventPatients: number
+  /**
+   * Aus dem Vormonat fortgeführte Beatmungspatienten (Legacy:
+   * `continuedFromPreviousMonth`). Ihre Beatmungstage/-stunden zählen weiterhin
+   * voll mit — nur als *Fall* werden sie dem Vormonat zugerechnet.
+   */
+  continuedVentPatients: number
   /** Hämofiltrationstage (CRRT-Records mit ≥1 Stunde). */
   crrtDays: number
   /** ECMO-Tage (ILA/ECMO-Records mit ≥1 Stunde). */
@@ -23,6 +34,30 @@ export interface IcuCalculated {
 
 function inMonth(dateStr: string, year: number, month: number): boolean {
   return dateStr.startsWith(`${year}-${String(month).padStart(2, '0')}-`)
+}
+
+/** Vormonat inkl. Jahreswechsel (Januar → Dezember des Vorjahres). */
+export function previousMonth(year: number, month: number): { year: number; month: number } {
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+}
+
+/**
+ * Patienten, die im angegebenen Monat beatmet wurden (≥1 Stunde). Basis für die
+ * Unterscheidung neu/fortgeführt.
+ */
+function ventilatedPatientsIn(
+  records: TherapyRecord[],
+  year: number,
+  month: number,
+): Set<string> {
+  const set = new Set<string>()
+  for (const r of records) {
+    if (r.therapyType !== 'beatmung') continue
+    if (!inMonth(r.date, year, month)) continue
+    if (!r.hours.some(Boolean)) continue
+    set.add(r.patientId)
+  }
+  return set
 }
 
 export function computeIcuMonthly(
@@ -50,11 +85,25 @@ export function computeIcuMonthly(
     }
   }
 
+  // Fälle, die schon im Vormonat beatmet wurden, gelten als fortgeführt und
+  // nicht als neuer Fall dieses Monats (Re-Intubation innerhalb desselben Falls
+  // ist kein neuer Fall). Tage und Stunden bleiben davon unberührt.
+  const prev = previousMonth(year, month)
+  const previouslyVentilated = ventilatedPatientsIn(records, prev.year, prev.month)
+
+  let newCases = 0
+  let continued = 0
+  for (const patientId of ventPatients) {
+    if (previouslyVentilated.has(patientId)) continued += 1
+    else newCases += 1
+  }
+
   return {
     startedVentDays,
     completeVentDays: Math.floor(ventHours / 24),
     ventHours,
-    ventPatients: ventPatients.size,
+    ventPatients: newCases,
+    continuedVentPatients: continued,
     crrtDays,
     ecmoDays,
   }
