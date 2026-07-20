@@ -4,7 +4,7 @@ import { buildPatientYearRows } from './reportRows'
 import { buildCsv } from './csvExport'
 
 function patient(id: string, name: string, caseNumber: string): Patient {
-  return { id, name, caseNumber }
+  return { id, name, caseNumber, lastUpdatedAt: '2026-01-01T00:00:00.000Z' }
 }
 
 /** Record mit `count` aktiven Stunden. */

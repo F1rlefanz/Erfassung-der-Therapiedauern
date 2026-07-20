@@ -15,6 +15,11 @@ export interface SeverityStat {
   unit: SeverityUnit
   cases: number
   tissPoints: number
+  /**
+   * Zeitpunkt der letzten Änderung (ISO-8601). Grundlage des Sync-Merge: ein
+   * älteres Echo darf einen neueren Stand nicht überschreiben.
+   */
+  lastUpdatedAt: string
 }
 
 /** Deterministische ID für einen (Jahr, Monat, Station)-Eintrag. */

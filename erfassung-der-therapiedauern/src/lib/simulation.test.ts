@@ -57,7 +57,7 @@ function buildDataset(seed = 20260720) {
   const patients: Patient[] = []
   const records: TherapyRecord[] = []
   const addPatient = (id: string, cn: string) => {
-    patients.push({ id, name: `Sim ${id}`, caseNumber: cn })
+    patients.push({ id, name: `Sim ${id}`, caseNumber: cn, lastUpdatedAt: '2026-01-01T00:00:00.000Z' })
   }
 
   // ---- Handgemachte Permutationen (garantierte Grenzfälle) ----

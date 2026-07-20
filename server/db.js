@@ -17,10 +17,11 @@ db.pragma('journal_mode = WAL')
 // hours_array wird als JSON-Text (boolean[24]) gespeichert.
 db.exec(`
   CREATE TABLE IF NOT EXISTS patients (
-    id          TEXT PRIMARY KEY,
-    case_number TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    id              TEXT PRIMARY KEY,
+    case_number     TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    last_updated_at TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS therapy_records (
@@ -38,12 +39,13 @@ db.exec(`
 
   -- Manuell erfasste Schweregrad-Kennzahlen je (Jahr, Monat, Station).
   CREATE TABLE IF NOT EXISTS severity_stats (
-    id          TEXT PRIMARY KEY,
-    year        INTEGER NOT NULL,
-    month       INTEGER NOT NULL,
-    unit        TEXT NOT NULL,
-    cases       INTEGER NOT NULL DEFAULT 0,
-    tiss_points INTEGER NOT NULL DEFAULT 0
+    id              TEXT PRIMARY KEY,
+    year            INTEGER NOT NULL,
+    month           INTEGER NOT NULL,
+    unit            TEXT NOT NULL,
+    cases           INTEGER NOT NULL DEFAULT 0,
+    tiss_points     INTEGER NOT NULL DEFAULT 0,
+    last_updated_at TEXT NOT NULL DEFAULT ''
   );
 
   -- Aktuell laufende Therapien (gemerkter Start ohne Ende). Der Start übersteht
@@ -57,10 +59,28 @@ db.exec(`
   );
 `)
 
+// ---- Migration: fehlende Spalten in BESTEHENDEN Datenbanken nachrüsten ------
+// (CREATE TABLE IF NOT EXISTS ändert vorhandene Tabellen nicht.) Neu angelegte
+// Zeilen bekommen '' als last_updated_at — „ganz alt", damit echte,
+// zeitgestempelte Client-Daten beim Merge gewinnen.
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name)
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`)
+  }
+}
+ensureColumn('patients', 'last_updated_at', "last_updated_at TEXT NOT NULL DEFAULT ''")
+ensureColumn('severity_stats', 'last_updated_at', "last_updated_at TEXT NOT NULL DEFAULT ''")
+
 // ---- Mapper: DB-Row <-> Wire-Modell (camelCase, wie im Client) ----
 
 function rowToPatient(row) {
-  return { id: row.id, caseNumber: row.case_number, name: row.name }
+  return {
+    id: row.id,
+    caseNumber: row.case_number,
+    name: row.name,
+    lastUpdatedAt: row.last_updated_at,
+  }
 }
 
 function rowToRecord(row) {
@@ -80,11 +100,13 @@ const stmtAllPatients = db.prepare('SELECT * FROM patients ORDER BY created_at A
 const stmtAllRecords = db.prepare('SELECT * FROM therapy_records')
 
 const stmtUpsertPatient = db.prepare(`
-  INSERT INTO patients (id, case_number, name)
-  VALUES (@id, @caseNumber, @name)
+  INSERT INTO patients (id, case_number, name, last_updated_at)
+  VALUES (@id, @caseNumber, @name, @lastUpdatedAt)
   ON CONFLICT(id) DO UPDATE SET
-    case_number = excluded.case_number,
-    name        = excluded.name
+    case_number     = excluded.case_number,
+    name            = excluded.name,
+    last_updated_at = excluded.last_updated_at
+  WHERE excluded.last_updated_at > patients.last_updated_at
 `)
 
 // Guard: Ein ÄLTERES Echo (z. B. von einem Client, der lange offline war und
@@ -114,6 +136,9 @@ function upsertPatient(patient) {
     id: patient.id,
     caseNumber: patient.caseNumber,
     name: patient.name,
+    // Fehlender Zeitstempel (Alt-Client) → '' (ganz alt), damit er neuere Daten
+    // nicht überschreibt; ein Erstinsert erfolgt trotzdem.
+    lastUpdatedAt: patient.lastUpdatedAt || '',
   })
 }
 
@@ -188,11 +213,13 @@ function getMonthlyVentilationAggregates() {
 
 const stmtAllSeverity = db.prepare('SELECT * FROM severity_stats')
 const stmtUpsertSeverity = db.prepare(`
-  INSERT INTO severity_stats (id, year, month, unit, cases, tiss_points)
-  VALUES (@id, @year, @month, @unit, @cases, @tissPoints)
+  INSERT INTO severity_stats (id, year, month, unit, cases, tiss_points, last_updated_at)
+  VALUES (@id, @year, @month, @unit, @cases, @tissPoints, @lastUpdatedAt)
   ON CONFLICT(id) DO UPDATE SET
-    cases       = excluded.cases,
-    tiss_points = excluded.tiss_points
+    cases           = excluded.cases,
+    tiss_points     = excluded.tiss_points,
+    last_updated_at = excluded.last_updated_at
+  WHERE excluded.last_updated_at > severity_stats.last_updated_at
 `)
 
 function rowToSeverity(row) {
@@ -203,6 +230,7 @@ function rowToSeverity(row) {
     unit: row.unit,
     cases: row.cases,
     tissPoints: row.tiss_points,
+    lastUpdatedAt: row.last_updated_at,
   }
 }
 
@@ -218,6 +246,7 @@ function upsertSeverityStat(stat) {
     unit: stat.unit,
     cases: stat.cases,
     tissPoints: stat.tissPoints,
+    lastUpdatedAt: stat.lastUpdatedAt || '',
   })
 }
 

@@ -46,7 +46,14 @@ export function nowHourStamp(): HourStamp {
 export const HOURS_PER_DAY = 24
 
 /** Versionsstempel des Backup-/Persistenz-Formats. */
-export const STORE_VERSION = 1
+export const STORE_VERSION = 2
+
+/**
+ * Fallback-Zeitstempel für Einträge ohne `lastUpdatedAt` (aus einem alten Cache
+ * oder Backup vor v0.15). Bewusst „ganz alt", damit echte, zeitgestempelte
+ * Serverdaten beim Merge gewinnen — der lokale Alt-Eintrag überschreibt sie nicht.
+ */
+const EPOCH = '1970-01-01T00:00:00.000Z'
 
 /** Leeres 24-Stunden-Array (alle Stunden inaktiv). */
 function emptyHours(): boolean[] {
@@ -346,7 +353,12 @@ export const useTherapyStore = create<TherapyState>()(
         const valid = validatePatientInput(get().patients, name, caseNumber)
         if (!valid.ok) return valid
 
-        const patient: Patient = { id: newId(), name: valid.name, caseNumber: valid.caseNumber }
+        const patient: Patient = {
+          id: newId(),
+          name: valid.name,
+          caseNumber: valid.caseNumber,
+          lastUpdatedAt: new Date().toISOString(),
+        }
         set((state) => ({ patients: [...state.patients, patient] }))
         pushPatientUpsert(patient) // No-op, wenn Server offline
         return { ok: true, patient }
@@ -361,7 +373,12 @@ export const useTherapyStore = create<TherapyState>()(
 
         // Die id bleibt stabil — alle TherapyRecords hängen daran und bleiben
         // dem Patienten dadurch erhalten.
-        const patient: Patient = { ...existing, name: valid.name, caseNumber: valid.caseNumber }
+        const patient: Patient = {
+          ...existing,
+          name: valid.name,
+          caseNumber: valid.caseNumber,
+          lastUpdatedAt: new Date().toISOString(),
+        }
         set((state) => ({ patients: upsertById(state.patients, patient) }))
         pushPatientUpsert(patient)
         return { ok: true, patient }
@@ -534,7 +551,12 @@ export const useTherapyStore = create<TherapyState>()(
       },
 
       mergeRemotePatient: (patient) =>
-        set((state) => ({ patients: upsertById(state.patients, patient) })),
+        set((state) => {
+          const existing = state.patients.find((p) => p.id === patient.id)
+          // Älteres Echo darf einen neueren lokalen Stand nicht überschreiben.
+          if (existing && (existing.lastUpdatedAt ?? '') > (patient.lastUpdatedAt ?? '')) return {}
+          return { patients: upsertById(state.patients, patient) }
+        }),
 
       mergeRemoteRecord: (record) =>
         set((state) => {
@@ -556,20 +578,33 @@ export const useTherapyStore = create<TherapyState>()(
         let updated: SeverityStat | undefined
         set((state) => {
           const existing = state.severityStats.find((s) => s.id === id)
-          const base: SeverityStat = existing ?? { id, year, month, unit, cases: 0, tissPoints: 0 }
-          updated = { ...base, [field]: Number.isFinite(value) ? Math.max(0, value) : 0 }
+          const base: SeverityStat = existing ?? { id, year, month, unit, cases: 0, tissPoints: 0, lastUpdatedAt: '' }
+          updated = {
+            ...base,
+            [field]: Number.isFinite(value) ? Math.max(0, value) : 0,
+            lastUpdatedAt: new Date().toISOString(),
+          }
           return { severityStats: upsertById(state.severityStats, updated) }
         })
         if (updated) scheduleSeverityPush(updated.id)
       },
 
       mergeRemoteSeverity: (stat) =>
-        set((state) => ({ severityStats: upsertById(state.severityStats, stat) })),
+        set((state) => {
+          const existing = state.severityStats.find((s) => s.id === stat.id)
+          // Älteres Echo darf einen neueren lokalen Stand nicht überschreiben.
+          if (existing && (existing.lastUpdatedAt ?? '') > (stat.lastUpdatedAt ?? '')) return {}
+          return { severityStats: upsertById(state.severityStats, stat) }
+        }),
 
       applyRemoteSeveritySnapshot: (stats) =>
         set((state) => {
           let merged = state.severityStats
-          for (const stat of stats) merged = upsertById(merged, stat)
+          for (const stat of stats) {
+            const existing = merged.find((s) => s.id === stat.id)
+            if (existing && (existing.lastUpdatedAt ?? '') > (stat.lastUpdatedAt ?? '')) continue
+            merged = upsertById(merged, stat)
+          }
           return { severityStats: merged }
         }),
 
@@ -650,13 +685,16 @@ export const useTherapyStore = create<TherapyState>()(
       }),
 
       importSnapshot: (snapshot, mode) => {
-        // Ältere Backups (vor v0.14) haben diese Felder nicht → als leer behandeln.
-        const snapSeverity = snapshot.severityStats ?? []
+        // Ältere Backups (vor v0.14) haben diese Felder nicht → als leer behandeln;
+        // Einträge ohne `lastUpdatedAt` (vor v0.15) auf EPOCH backfüllen, damit sie
+        // beim Merge neuere Serverdaten nicht überschreiben.
+        const snapPatients = snapshot.patients.map((p) => ({ ...p, lastUpdatedAt: p.lastUpdatedAt ?? EPOCH }))
+        const snapSeverity = (snapshot.severityStats ?? []).map((s) => ({ ...s, lastUpdatedAt: s.lastUpdatedAt ?? EPOCH }))
         const snapOpen = snapshot.openTherapies ?? []
 
         if (mode === 'replace') {
           set({
-            patients: snapshot.patients,
+            patients: snapPatients,
             therapyRecords: snapshot.therapyRecords,
             severityStats: snapSeverity,
             openTherapies: snapOpen,
@@ -664,7 +702,11 @@ export const useTherapyStore = create<TherapyState>()(
         } else {
           set((state) => {
             let patients = state.patients
-            for (const p of snapshot.patients) patients = upsertById(patients, p)
+            for (const p of snapPatients) {
+              const existing = patients.find((x) => x.id === p.id)
+              if (existing && (existing.lastUpdatedAt ?? '') > (p.lastUpdatedAt ?? '')) continue
+              patients = upsertById(patients, p)
+            }
             let records = state.therapyRecords
             for (const r of snapshot.therapyRecords) {
               const existing = records.find((x) => x.id === r.id)
@@ -672,7 +714,11 @@ export const useTherapyStore = create<TherapyState>()(
               records = upsertById(records, r)
             }
             let severityStats = state.severityStats
-            for (const s of snapSeverity) severityStats = upsertById(severityStats, s)
+            for (const s of snapSeverity) {
+              const existing = severityStats.find((x) => x.id === s.id)
+              if (existing && (existing.lastUpdatedAt ?? '') > (s.lastUpdatedAt ?? '')) continue
+              severityStats = upsertById(severityStats, s)
+            }
             let openTherapies = state.openTherapies
             for (const o of snapOpen) {
               const existing = openTherapies.find((x) => x.id === o.id)
@@ -713,6 +759,22 @@ export const useTherapyStore = create<TherapyState>()(
         deletedPatientIds: state.deletedPatientIds,
         deletedRecordIds: state.deletedRecordIds,
       }),
+      // v1 → v2: Patienten und Schweregrad-Kennzahlen bekamen ein `lastUpdatedAt`.
+      // Alte Einträge ohne das Feld werden auf EPOCH gesetzt (siehe dort).
+      migrate: (persisted, fromVersion) => {
+        const state = persisted as Partial<TherapyState>
+        if (fromVersion < 2) {
+          state.patients = (state.patients ?? []).map((p) => ({
+            ...p,
+            lastUpdatedAt: p.lastUpdatedAt ?? EPOCH,
+          }))
+          state.severityStats = (state.severityStats ?? []).map((s) => ({
+            ...s,
+            lastUpdatedAt: s.lastUpdatedAt ?? EPOCH,
+          }))
+        }
+        return state
+      },
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           // eslint-disable-next-line no-console

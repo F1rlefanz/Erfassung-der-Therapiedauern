@@ -11,6 +11,7 @@ beforeEach(() => {
     patients: [],
     therapyRecords: [],
     openTherapies: [],
+    severityStats: [],
     nowStamp: '2026-07-16T23',
     isPainting: false,
     paintValue: true,
@@ -267,6 +268,28 @@ describe('Sync-Merge (Remote-Events)', () => {
       lastUpdatedAt: '2026-07-16T11:00:00.000Z',
     })
     expect(getHours(s(), pid, 'beatmung').every(Boolean)).toBe(true)
+  })
+
+  it('Patient-Merge: älteres Echo überschreibt einen neueren Namen nicht', () => {
+    const pid = addPatient() // hat frisches lastUpdatedAt
+    s().updatePatient(pid, 'Neu, Name', '100234')
+    const current = s().patients[0]
+    // Älteres Echo (Epoch) mit altem Namen darf nicht greifen.
+    s().mergeRemotePatient({ ...current, name: 'Alt, Name', lastUpdatedAt: '1970-01-01T00:00:00.000Z' })
+    expect(s().patients[0].name).toBe('Neu, Name')
+    // Neueres Echo greift.
+    s().mergeRemotePatient({ ...current, name: 'Neuer, Name', lastUpdatedAt: '2999-01-01T00:00:00.000Z' })
+    expect(s().patients[0].name).toBe('Neuer, Name')
+  })
+
+  it('Severity-Merge: älteres Echo überschreibt einen neueren Wert nicht', () => {
+    s().setSeverityInput(2026, 7, 'ICU', 'cases', 8)
+    const stat = s().severityStats[0]
+    expect(stat.lastUpdatedAt).not.toBe('') // setSeverityInput stempelt
+    s().mergeRemoteSeverity({ ...stat, cases: 0, lastUpdatedAt: '1970-01-01T00:00:00.000Z' })
+    expect(s().severityStats[0].cases).toBe(8) // altes Echo verworfen
+    s().mergeRemoteSeverity({ ...stat, cases: 99, lastUpdatedAt: '2999-01-01T00:00:00.000Z' })
+    expect(s().severityStats[0].cases).toBe(99) // neueres greift
   })
 })
 

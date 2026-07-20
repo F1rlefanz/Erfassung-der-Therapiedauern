@@ -11,6 +11,11 @@ export interface Patient {
   /** Fallnummer (fachlicher Schlüssel im Klinik-Kontext). */
   caseNumber: string
   name: string
+  /**
+   * Zeitpunkt der letzten Änderung (ISO-8601). Grundlage des Sync-Merge: ein
+   * älteres Echo darf einen neueren Stand nicht überschreiben.
+   */
+  lastUpdatedAt: string
 }
 
 /**

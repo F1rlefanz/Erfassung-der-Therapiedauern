@@ -10,8 +10,8 @@ function rec(patientId: string, date: string, tt: TherapyType, hoursActive: numb
 }
 
 const patients: Patient[] = [
-  { id: 'p1', name: 'Mustermann, Max', caseNumber: '100234' },
-  { id: 'p2', name: 'Musterfrau, Erika', caseNumber: '100235' },
+  { id: 'p1', name: 'Mustermann, Max', caseNumber: '100234', lastUpdatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'p2', name: 'Musterfrau, Erika', caseNumber: '100235', lastUpdatedAt: '2026-01-01T00:00:00.000Z' },
 ]
 
 const NOW = '2026-07-20T23'
