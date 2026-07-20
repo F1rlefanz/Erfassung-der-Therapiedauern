@@ -5,6 +5,17 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.14.0] - 2026-07-20 — Rohdaten-Export (Von/Bis) & laufende Therapie verwerfen
+
+### Added
+- **CSV-Rohdaten-Export „Von/Bis"** im MDK-Tab: eine Zeile je zusammenhängender
+  Therapie-Episode (auch über Mitternacht), mit Fallnummer, Name, Therapieart,
+  Beginn-Datum, Von (`HH:00`), Ende-Datum, Bis (`HH:59`) und Stunden. Laufende
+  Therapien fließen bis zur aktuellen Stunde ein. Ergänzt den aggregierten
+  CSV-Export, ersetzt ihn nicht.
+- **Laufende Therapie verwerfen**: „✕" neben „Beenden" entfernt eine laufende
+  Therapie, OHNE Stunden zu speichern — für einen versehentlichen „Läuft"-Klick.
+
 ## [0.13.0] - 2026-07-20 — Laufende Therapien, Patientenverwaltung & Legacy-Regeln
 
 ### Added
