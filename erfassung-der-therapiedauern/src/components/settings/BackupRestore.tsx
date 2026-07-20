@@ -45,7 +45,7 @@ function BackupRestore() {
     downloadJson(`therapiedauern-backup-${todayISO()}.json`, snapshot)
     setStatus({
       kind: 'success',
-      text: `Backup exportiert (${snapshot.patients.length} Patienten, ${snapshot.therapyRecords.length} Records).`,
+      text: `Backup exportiert (${snapshot.patients.length} Patienten, ${snapshot.therapyRecords.length} Records, ${snapshot.severityStats?.length ?? 0} Schweregrad-Einträge).`,
     })
   }
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { NAV_ITEMS } from '../components/layout/navItems'
 import { useTherapyStore } from '../store/therapyStore'
+import { useEffectiveRecords } from '../store/useEffectiveRecords'
 import { formatDateDE, formatDateTimeDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
 
@@ -9,7 +10,9 @@ const QUICK_LINKS = NAV_ITEMS.filter((item) => item.to !== '/')
 
 function DashboardPage() {
   const patients = useTherapyStore((s) => s.patients)
-  const therapyRecords = useTherapyStore((s) => s.therapyRecords)
+  // Effektive Records (inkl. laufender Therapien bis „jetzt"), damit die
+  // „heute"-Kacheln mit Erfassung und Analysen übereinstimmen.
+  const therapyRecords = useEffectiveRecords()
 
   const today = todayISO()
   const todaysRecords = therapyRecords.filter(

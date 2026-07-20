@@ -394,4 +394,39 @@ describe('Backup & Restore', () => {
     expect(s().patients).toHaveLength(2)
     expect(s().patients.some((p) => p.id === pid)).toBe(true)
   })
+
+  it('sichert und stellt Schweregrad-Kennzahlen und laufende Therapien wieder her', () => {
+    const pid = addPatient()
+    s().setSeverityInput(2026, 7, 'ICU', 'cases', 42)
+    s().setSeverityInput(2026, 7, 'ICU', 'tissPoints', 300)
+    s().startTherapyNow(pid, 'beatmung')
+
+    const snapshot = s().exportSnapshot()
+    expect(snapshot.severityStats).toHaveLength(1)
+    expect(snapshot.openTherapies).toHaveLength(1)
+
+    // Alles leeren, dann wiederherstellen.
+    useTherapyStore.setState({ patients: [], therapyRecords: [], severityStats: [], openTherapies: [] })
+    s().importSnapshot(snapshot, 'replace')
+    expect(s().severityStats[0]).toMatchObject({ cases: 42, tissPoints: 300 })
+    expect(s().openTherapies).toHaveLength(1)
+    expect(s().openTherapies[0].patientId).toBe(pid)
+  })
+
+  it('importiert alte Backups ohne die neuen Felder verlustfrei (Abwärtskompatibilität)', () => {
+    const pid = addPatient()
+    // Snapshot im alten Format (ohne severityStats/openTherapies).
+    const legacySnapshot = {
+      version: 1,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      patients: s().patients,
+      therapyRecords: [],
+    }
+    useTherapyStore.setState({ patients: [] })
+    expect(() => s().importSnapshot(legacySnapshot, 'replace')).not.toThrow()
+    expect(s().patients).toHaveLength(1)
+    expect(s().patients[0].id).toBe(pid)
+    expect(s().severityStats).toHaveLength(0)
+    expect(s().openTherapies).toHaveLength(0)
+  })
 })

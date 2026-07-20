@@ -200,6 +200,13 @@ export interface BackupSnapshot {
   exportedAt: string
   patients: Patient[]
   therapyRecords: TherapyRecord[]
+  /**
+   * Manuell erfasste Schweregrad-Kennzahlen (Fälle / TISS-28). Optional, da
+   * Backups vor v0.14 dieses Feld nicht enthalten — dann als leer behandeln.
+   */
+  severityStats?: SeverityStat[]
+  /** Laufende Therapien. Optional (ältere Backups haben das Feld nicht). */
+  openTherapies?: OpenTherapy[]
 }
 
 interface TherapyState {
@@ -638,13 +645,21 @@ export const useTherapyStore = create<TherapyState>()(
         exportedAt: new Date().toISOString(),
         patients: get().patients,
         therapyRecords: get().therapyRecords,
+        severityStats: get().severityStats,
+        openTherapies: get().openTherapies,
       }),
 
       importSnapshot: (snapshot, mode) => {
+        // Ältere Backups (vor v0.14) haben diese Felder nicht → als leer behandeln.
+        const snapSeverity = snapshot.severityStats ?? []
+        const snapOpen = snapshot.openTherapies ?? []
+
         if (mode === 'replace') {
           set({
             patients: snapshot.patients,
             therapyRecords: snapshot.therapyRecords,
+            severityStats: snapSeverity,
+            openTherapies: snapOpen,
           })
         } else {
           set((state) => {
@@ -656,12 +671,22 @@ export const useTherapyStore = create<TherapyState>()(
               if (existing && existing.lastUpdatedAt > r.lastUpdatedAt) continue
               records = upsertById(records, r)
             }
-            return { patients, therapyRecords: records }
+            let severityStats = state.severityStats
+            for (const s of snapSeverity) severityStats = upsertById(severityStats, s)
+            let openTherapies = state.openTherapies
+            for (const o of snapOpen) {
+              const existing = openTherapies.find((x) => x.id === o.id)
+              if (existing && existing.lastUpdatedAt > o.lastUpdatedAt) continue
+              openTherapies = upsertById(openTherapies, o)
+            }
+            return { patients, therapyRecords: records, severityStats, openTherapies }
           })
         }
         // Importierten Bestand an den Server nachreichen (falls online).
         for (const p of get().patients) pushPatientUpsert(p)
         for (const r of get().therapyRecords) pushRecordUpsert(r)
+        for (const s of get().severityStats) pushSeverityUpsert(s)
+        for (const o of get().openTherapies) pushOpenTherapyUpsert(o)
       },
     }),
     {
@@ -759,21 +784,6 @@ export function findPatientByCaseNumber(
 ): Patient | undefined {
   const needle = normalizeCaseNumber(caseNumber)
   return patients.find((p) => normalizeCaseNumber(p.caseNumber) === needle)
-}
-
-/**
- * Liest den Schweregrad-Eintrag für (Jahr, Monat, Station) oder liefert die
- * Nullwerte, falls (noch) nichts erfasst wurde. Für Selektoren nutzbar.
- */
-export function getSeverityStat(
-  state: TherapyState,
-  year: number,
-  month: number,
-  unit: SeverityUnit,
-): { cases: number; tissPoints: number } {
-  const id = severityId(year, month, unit)
-  const stat = state.severityStats.find((s) => s.id === id)
-  return stat ? { cases: stat.cases, tissPoints: stat.tissPoints } : { cases: 0, tissPoints: 0 }
 }
 
 /**
