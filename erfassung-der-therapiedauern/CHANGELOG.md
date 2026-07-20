@@ -5,6 +5,21 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.14.2] - 2026-07-20 — Retrospektiv: vollständiges Backup, Konsistenz, Aufräumen
+
+### Fixed
+- **Backup vollständig**: Der Export enthielt nur Patienten und Therapie-Records —
+  die manuell erfassten Schweregrad-Kennzahlen (Fälle / TISS-28) und laufende
+  Therapien fehlten. Ein Export→Restore-Zyklus hätte diese verloren. Beide werden
+  jetzt gesichert und wiederhergestellt; ältere Backup-Dateien bleiben importierbar.
+- **Dashboard konsistent**: Die „heute"-Kacheln nutzten die Basis-Records statt
+  der effektiven — laufende Therapien tauchten dort nicht auf. Jetzt konsistent
+  mit Erfassung und Analysen.
+
+### Removed
+- Verwaisten toten Code entfernt (`previousDay`, `totalEpisodeHours`,
+  `getSeverityStat` — ohne Konsumenten nach den Umbauten).
+
 ## [0.14.1] - 2026-07-20 — Fix: Löschen-Warntext
 
 ### Fixed
