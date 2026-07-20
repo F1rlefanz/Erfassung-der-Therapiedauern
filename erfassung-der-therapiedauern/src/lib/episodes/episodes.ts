@@ -184,6 +184,34 @@ export function totalEpisodeHours(episodes: TherapyEpisode[], now: HourStamp): n
   return episodes.reduce((sum, ep) => sum + episodeHours(ep, now), 0)
 }
 
+/**
+ * Effektives 24-Stunden-Raster eines Tages: Basis-Stunden plus die Deckung einer
+ * eventuell laufenden Therapie bis „jetzt". Ohne laufende Therapie wird
+ * `baseHours` **referenzgleich** zurückgegeben — wichtig, damit reaktive
+ * Selektoren nicht bei jedem Render ein neues Array sehen (Endlosschleife).
+ */
+export function overlayDayHours(
+  baseHours: boolean[],
+  open: OpenTherapy | undefined,
+  date: string,
+  now: HourStamp,
+): boolean[] {
+  if (!open) return baseHours
+
+  const episode: TherapyEpisode = {
+    id: open.id,
+    patientId: open.patientId,
+    therapyType: open.therapyType,
+    startAt: open.startAt,
+    endAt: null,
+    lastUpdatedAt: open.lastUpdatedAt,
+  }
+  const overlay = hoursForDay([episode], open.patientId, open.therapyType, date, now)
+  if (!overlay.some(Boolean)) return baseHours // Tag außerhalb des Laufs → Basis unverändert
+
+  return baseHours.map((active, i) => active || overlay[i])
+}
+
 // ---------------------------------------------------------------------------
 // Overlay: laufende Therapien auf die Basis-Records legen
 // ---------------------------------------------------------------------------

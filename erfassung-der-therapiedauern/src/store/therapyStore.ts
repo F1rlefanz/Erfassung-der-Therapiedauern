@@ -20,6 +20,7 @@ import type { MonthlyAggregate } from '../lib/projections/types'
 import { severityId, type SeverityStat, type SeverityUnit } from '../lib/severity/types'
 import {
   hourStamp,
+  overlayDayHours,
   overlayOpenTherapies,
   parseHourStamp,
   slotIndex,
@@ -782,10 +783,31 @@ export function getOpenTherapy(
 }
 
 /**
+ * Reine Basis-Stunden (ohne laufende Therapie) für (Patient, Art) am gewählten
+ * Tag. Referenzstabil (Record-Array bzw. die geteilte EMPTY_HOURS-Referenz) —
+ * darum als reaktiver Store-Selektor geeignet. Das Overlay einer laufenden
+ * Therapie wird im Aufrufer per {@link overlayDayHours}/useMemo ergänzt.
+ */
+export function getBaseHours(
+  state: TherapyState,
+  patientId: string,
+  therapyType: TherapyType,
+): boolean[] {
+  const record = state.therapyRecords.find(
+    (r) =>
+      r.patientId === patientId &&
+      r.date === state.selectedDate &&
+      r.therapyType === therapyType,
+  )
+  return record ? record.hours : EMPTY_HOURS
+}
+
+/**
  * Liest das 24-Stunden-Array für (Patient, Therapieart) am aktuell gewählten
  * Datum — inklusive einer eventuell laufenden Therapie (bis „jetzt"). Fehlt jede
- * Belegung, wird ein leeres Array zurückgegeben. Row-Ebenen-Selektor ohne
- * Extra-Renders (nur der eigene Tag wird betrachtet).
+ * Belegung, wird ein leeres Array zurückgegeben. NICHT als reaktiver Selektor
+ * verwenden (erzeugt bei laufender Therapie ein neues Array) — dort
+ * {@link getBaseHours} + {@link overlayDayHours} nutzen.
  */
 export function getHours(
   state: TherapyState,
@@ -798,13 +820,9 @@ export function getHours(
       r.date === state.selectedDate &&
       r.therapyType === therapyType,
   )
+  const base = record ? record.hours : EMPTY_HOURS
   const open = getOpenTherapy(state, patientId, therapyType)
-  if (!open) return record ? record.hours : EMPTY_HOURS
-
-  // Laufende Therapie: Basis-Stunden mit der Overlay-Deckung des Tages verbinden.
-  const overlaid = overlayOpenTherapies(record ? [record] : [], [open], state.nowStamp)
-  const forDay = overlaid.find((r) => r.date === state.selectedDate)
-  return forDay ? forDay.hours : record ? record.hours : EMPTY_HOURS
+  return overlayDayHours(base, open, state.selectedDate, state.nowStamp)
 }
 
 /** Geteilte, unveränderliche Referenz für „keine Stunden aktiv" (stabile Identität). */

@@ -9,6 +9,7 @@ import {
   isOpen,
   LONG_TERM_DAYS,
   openEpisodeLevel,
+  overlayDayHours,
   overlayOpenTherapies,
   recordsToEpisodes,
   REVIEW_DAYS,
@@ -260,5 +261,40 @@ describe('Overlay laufender Therapien', () => {
   it('ignoriert eine Therapie, deren Start in der Zukunft liegt', () => {
     const result = overlayOpenTherapies([], [ot('2026-07-16T14')], '2026-07-16T12')
     expect(hoursOf(result, 'p1', '2026-07-16', 'beatmung')).toBeUndefined()
+  })
+})
+
+describe('overlayDayHours (referenzstabil für reaktive Selektoren)', () => {
+  const base = Array<boolean>(24).fill(false)
+
+  it('gibt ohne laufende Therapie GENAU dieselbe Referenz zurück', () => {
+    // Referenzgleichheit verhindert die Endlosschleife in useSyncExternalStore.
+    expect(overlayDayHours(base, undefined, '2026-07-16', '2026-07-16T12')).toBe(base)
+  })
+
+  it('gibt an einem Tag außerhalb des Laufs dieselbe Referenz zurück', () => {
+    const ot: OpenTherapy = {
+      id: 'p1__beatmung',
+      patientId: 'p1',
+      therapyType: 'beatmung',
+      startAt: '2026-07-16T08',
+      lastUpdatedAt: '2026-07-16T08:00:00.000Z',
+    }
+    // Tag VOR dem Start → Basis unverändert (gleiche Referenz).
+    expect(overlayDayHours(base, ot, '2026-07-15', '2026-07-16T12')).toBe(base)
+  })
+
+  it('ergänzt am Lauf-Tag die Overlay-Stunden (neues Array, Basis erhalten)', () => {
+    const ot: OpenTherapy = {
+      id: 'p1__beatmung',
+      patientId: 'p1',
+      therapyType: 'beatmung',
+      startAt: '2026-07-16T08',
+      lastUpdatedAt: '2026-07-16T08:00:00.000Z',
+    }
+    const result = overlayDayHours(base, ot, '2026-07-16', '2026-07-16T10')
+    expect(result).not.toBe(base)
+    expect(result.slice(8, 11).every(Boolean)).toBe(true) // 08..10
+    expect(result[11]).toBe(false)
   })
 })

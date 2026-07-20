@@ -1,6 +1,13 @@
+import { useMemo } from 'react'
 import type { TherapyType } from '../../types'
-import { getHours, getOpenTherapy, HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
-import { episodeDays, LONG_TERM_DAYS, openEpisodeLevel, REVIEW_DAYS } from '../../lib/episodes/episodes'
+import { getBaseHours, getOpenTherapy, HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
+import {
+  episodeDays,
+  LONG_TERM_DAYS,
+  openEpisodeLevel,
+  overlayDayHours,
+  REVIEW_DAYS,
+} from '../../lib/episodes/episodes'
 import type { OpenTherapy } from '../../lib/episodes/types'
 import HourCell from './HourCell'
 
@@ -17,9 +24,17 @@ interface TherapyRowProps {
  * damit beim Malen ausschließlich die betroffene Zeile neu rendert.
  */
 function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
-  const hours = useTherapyStore((s) => getHours(s, patientId, therapyType))
+  // Stabile Primitive einzeln selektieren (jeweils referenzstabil), das Overlay
+  // erst in useMemo verbinden — sonst liefert der Store-Selektor bei laufender
+  // Therapie in jedem Render ein neues Array (Endlosschleife).
+  const baseHours = useTherapyStore((s) => getBaseHours(s, patientId, therapyType))
   const open = useTherapyStore((s) => getOpenTherapy(s, patientId, therapyType))
   const nowStamp = useTherapyStore((s) => s.nowStamp)
+  const selectedDate = useTherapyStore((s) => s.selectedDate)
+  const hours = useMemo(
+    () => overlayDayHours(baseHours, open, selectedDate, nowStamp),
+    [baseHours, open, selectedDate, nowStamp],
+  )
   const startPaint = useTherapyStore((s) => s.startPaint)
   const paintOver = useTherapyStore((s) => s.paintOver)
   const toggleHour = useTherapyStore((s) => s.toggleHour)
