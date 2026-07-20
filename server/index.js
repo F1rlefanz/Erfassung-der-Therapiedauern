@@ -18,6 +18,7 @@ const cors = require('cors')
 const { Server } = require('socket.io')
 const db = require('./db')
 const log = require('./logger')
+const v = require('./validate')
 
 const PORT = process.env.PORT || 3001
 
@@ -72,7 +73,11 @@ io.on('connection', (socket) => {
   socket.emit('sync:severity_stats', db.getAllSeverityStats())
   socket.emit('sync:open_therapies', db.getAllOpenTherapies())
 
+  // Verwirft ungültige Payloads (protokolliert), bevor sie in die DB gelangen.
+  const reject = (event) => log.error(`[server] ${event}: ungültige Payload verworfen`)
+
   socket.on('patient:upsert', (patient) => {
+    if (!v.isValidPatient(patient)) return reject('patient:upsert')
     try {
       db.upsertPatient(patient)
       socket.broadcast.emit('patient:upsert', patient)
@@ -82,6 +87,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('record:upsert', (record) => {
+    if (!v.isValidRecord(record)) return reject('record:upsert')
     try {
       db.upsertRecord(record)
       socket.broadcast.emit('record:upsert', record)
@@ -91,6 +97,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('record:delete', (id) => {
+    if (!v.isValidId(id)) return reject('record:delete')
     try {
       db.deleteRecord(id)
       socket.broadcast.emit('record:delete', id)
@@ -100,6 +107,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('patient:delete', (id) => {
+    if (!v.isValidId(id)) return reject('patient:delete')
     try {
       db.deletePatient(id)
       socket.broadcast.emit('patient:delete', id)
@@ -109,6 +117,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('severity_stat:upsert', (stat) => {
+    if (!v.isValidSeverity(stat)) return reject('severity_stat:upsert')
     try {
       db.upsertSeverityStat(stat)
       socket.broadcast.emit('severity_stat:upsert', stat)
@@ -118,6 +127,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('open_therapy:upsert', (open) => {
+    if (!v.isValidOpenTherapy(open)) return reject('open_therapy:upsert')
     try {
       db.upsertOpenTherapy(open)
       socket.broadcast.emit('open_therapy:upsert', open)
@@ -127,6 +137,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('open_therapy:delete', (id) => {
+    if (!v.isValidId(id)) return reject('open_therapy:delete')
     try {
       db.deleteOpenTherapy(id)
       socket.broadcast.emit('open_therapy:delete', id)
