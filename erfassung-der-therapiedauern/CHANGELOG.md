@@ -5,6 +5,21 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.15.1] - 2026-07-20 — Sync-Konsistenz & Server-Validierung
+
+### Fixed
+- **Konsistenz-Guard für Patienten & Schweregrad-Kennzahlen:** Diese erhielten
+  (wie Therapiezeiten und laufende Therapien) einen Änderungszeitstempel. Ein
+  älteres Echo eines lange offline gewesenen Clients kann damit einen neueren
+  Stand nicht mehr überschreiben — schützt insbesondere die manuell erfassten
+  Fälle/TISS-28-Werte und Namensänderungen. Migration von Cache und Datenbank
+  erfolgt automatisch; ältere Backups bleiben importierbar.
+
+### Technical
+- **Server-Eingangsvalidierung:** Fehlerhafte oder manipulierte Sync-Payloads
+  werden serverseitig verworfen und protokolliert, bevor sie in die Datenbank
+  gelangen.
+
 ## [0.15.0] - 2026-07-20 — Autonomer Windows-Betrieb & Robustheit
 
 ### Added
