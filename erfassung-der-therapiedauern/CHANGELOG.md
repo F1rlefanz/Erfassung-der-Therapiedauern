@@ -5,6 +5,13 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.14.1] - 2026-07-20 — Fix: Löschen-Warntext
+
+### Fixed
+- Der Warntext beim Patienten-Löschen („…an X Tagen mitgelöscht") zählt jetzt
+  distinkte Kalendertage statt Records. Zuvor erschienen mehrere Therapiearten
+  am selben Tag als mehrere „Tage". (Beim manuellen End-to-End-Test gefunden.)
+
 ## [0.14.0] - 2026-07-20 — Rohdaten-Export (Von/Bis) & laufende Therapie verwerfen
 
 ### Added
