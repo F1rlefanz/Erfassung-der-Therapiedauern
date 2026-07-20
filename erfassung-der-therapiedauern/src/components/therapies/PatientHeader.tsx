@@ -23,9 +23,10 @@ function PatientHeader({ patient }: { patient: Patient }) {
   const [error, setError] = useState<string | null>(null)
 
   // Umfang der Löschung konkret beziffern — der Nutzer soll nicht raten müssen,
-  // was verloren geht.
+  // was verloren geht. „Tage" = distinkte Kalendertage mit erfasster Zeit (nicht
+  // die Zahl der Records: an einem Tag können mehrere Therapiearten laufen).
   const own = records.filter((r) => r.patientId === patient.id)
-  const affectedDays = own.filter((r) => r.hours.some(Boolean)).length
+  const affectedDays = new Set(own.filter((r) => r.hours.some(Boolean)).map((r) => r.date)).size
   const affectedHours = own.reduce((sum, r) => sum + therapyHours(r), 0)
 
   function startEdit() {
