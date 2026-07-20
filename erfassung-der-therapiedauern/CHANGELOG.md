@@ -5,6 +5,44 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.13.0] - 2026-07-20 — Laufende Therapien, Patientenverwaltung & Legacy-Regeln
+
+### Added
+- **Laufende Therapien**: Je Therapiezeile „▶ Läuft" merkt den Start, „■ Beenden"
+  schließt ab. Eine laufende Therapie füllt automatisch bis zur aktuellen Stunde
+  — auch über Mitternacht und nach einem Absturz/Server-Neustart (nur der Start
+  wird gemerkt und synchronisiert; Zeitvergehen erzeugt keinen Schreibvorgang).
+  Ersetzt den bisherigen manuellen Button „Vortag fortführen".
+- **Langzeit-Warnung** an laufenden Therapien: dezenter Puls unter 14 Tagen; ab
+  14 Tagen (Langzeitbeatmung) und ab 28 Tagen („Ende vergessen?") ein ⓘ mit
+  erklärendem Maus-Over. Schwellen an den klinischen Definitionen orientiert.
+- **Patienten bearbeiten & löschen**: Name/Fallnummer über ✎ ändern (explizites
+  Speichern/Abbrechen, keine stillen Änderungen). Löschen in drei Stufen (Tag
+  zurücksetzen · Therapieart über alle Tage · ganzer Patient) mit konkret
+  bezifferter Warnung. Fallnummern sind eindeutig; Doppelvergabe wird abgelehnt.
+- **Monatsstatistik je Therapieart** (Analysen, aus dem Legacy nachgebaut):
+  Stunden, begonnene/ganze Tage, neue & fortgeführte Fälle, Tage/Fall, mit
+  Jahres-Summe und Monatsdurchschnitt.
+- **Regel-Legende** in der Schweregradstatistik: aufklappbare Erklärung jeder
+  Spalte, manuelle Felder (✎) klar von berechneten unterschieden, Header-Tooltips.
+- Neue Spalte **„Fortgeführte Beatmungspatienten"** (ICU): im Vormonat beatmete
+  Patienten zählen nicht als neuer Fall des Monats (Re-Intubation = kein neuer
+  Fall) — wirkt legacy-treu auf Beatmungspatienten, Anteil % und Ø Beatmungsdauer.
+
+### Changed
+- **Prognose** rechnet erst ab 3 Monaten Datenbasis hoch (sonst Hinweis statt
+  erfundener Zahl) und zeigt eine Konfidenz-Angabe.
+- **Tages-Summenzeile** der Erfassung zeigt zusätzlich die Fallzahl je Therapieart.
+
+### Fixed
+- Endlosschleife im Stundenraster bei einer laufenden Therapie (weiße Seite).
+
+### Technical
+- On-Premise-Server: neue SQLite-Tabelle `open_therapies` mit Socket.io-Sync
+  (`sync:open_therapies` / `open_therapy:upsert` / `open_therapy:delete`),
+  kaskadiert beim Patienten-Löschen. Löschungen via „Grabsteine" gegen
+  Wiederauferstehen offline gelöschter Einträge.
+
 ## [0.12.0] - 2026-07-16 — Action Cycle 13: IA-Refactoring (Visuell vs. Tabellarisch)
 
 ### Changed
