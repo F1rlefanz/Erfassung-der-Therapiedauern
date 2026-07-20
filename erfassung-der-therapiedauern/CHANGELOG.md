@@ -5,6 +5,24 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.15.0] - 2026-07-20 — Autonomer Windows-Betrieb & Robustheit
+
+### Added
+- **Autonomer Windows-Server-Betrieb**: Der Server läuft als Windows-Dienst
+  (Auto-Start beim Booten, Neustart nach Absturz), liefert die Web-Oberfläche
+  gleich mit aus (ein Prozess/Port), erstellt **täglich automatische
+  SQLite-Backups** (mit Aufbewahrungsgrenze) und schreibt **Tages-Logdateien**.
+  Install-/Uninstall-Skripte + Betriebsanleitung `docs/Betrieb-Windows.md`.
+- **ErrorBoundary**: Ein Fehler in einer Komponente führt nicht mehr zur weißen
+  Seite, sondern zu einer bedienbaren Meldung mit „Seite neu laden".
+
+### Fixed
+- **Server-Konsistenz**: Ein älteres Echo eines lange offline gewesenen Clients
+  überschreibt beim Reconnect keinen neueren Serverstand mehr (Zeitstempel-Guard
+  beim Upsert von Records und laufenden Therapien).
+- Sauberes Herunterfahren (WAL-Checkpoint) und Protokollierung unerwarteter
+  Fehler/Abstürze.
+
 ## [0.14.2] - 2026-07-20 — Retrospektiv: vollständiges Backup, Konsistenz, Aufräumen
 
 ### Fixed
