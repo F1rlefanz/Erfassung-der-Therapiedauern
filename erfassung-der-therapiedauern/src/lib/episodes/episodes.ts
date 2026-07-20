@@ -179,11 +179,6 @@ export function recordsToEpisodes(records: TherapyRecord[]): TherapyEpisode[] {
   return episodes
 }
 
-/** Summe der Therapiestunden einer Episodenliste (offene bis „jetzt"). */
-export function totalEpisodeHours(episodes: TherapyEpisode[], now: HourStamp): number {
-  return episodes.reduce((sum, ep) => sum + episodeHours(ep, now), 0)
-}
-
 /**
  * Effektives 24-Stunden-Raster eines Tages: Basis-Stunden plus die Deckung einer
  * eventuell laufenden Therapie bis „jetzt". Ohne laufende Therapie wird
