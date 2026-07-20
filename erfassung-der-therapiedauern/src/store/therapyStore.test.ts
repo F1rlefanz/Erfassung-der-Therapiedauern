@@ -346,6 +346,19 @@ describe('Laufende Therapien (Start merken, bis „jetzt" ableiten)', () => {
     expect(rec?.hours.slice(0, 6).every(Boolean)).toBe(true) // 00..05
   })
 
+  it('verwirft eine laufende Therapie ohne Stunden zu materialisieren', () => {
+    const pid = addPatient()
+    useTherapyStore.setState({ nowStamp: '2026-07-16T05', selectedDate: '2026-07-16' })
+    s().startTherapyNow(pid, 'beatmung')
+    useTherapyStore.setState({ nowStamp: '2026-07-16T09' })
+
+    s().discardTherapy(pid, 'beatmung')
+    expect(s().openTherapies).toHaveLength(0)
+    // Keine konkreten Stunden geschrieben (anders als endTherapy).
+    expect(s().therapyRecords).toHaveLength(0)
+    expect(getHours(s(), pid, 'beatmung').some(Boolean)).toBe(false)
+  })
+
   it('entfernt beim Löschen des Patienten auch die laufende Therapie', () => {
     const pid = addPatient()
     s().startTherapyNow(pid, 'beatmung')

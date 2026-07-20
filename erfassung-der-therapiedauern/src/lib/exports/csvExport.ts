@@ -1,5 +1,6 @@
 import type { PatientYearRow } from './reportRows'
 import { sumPatientYearRows } from './reportRows'
+import type { EpisodeRow } from './episodeRows'
 
 /** Trennzeichen für deutsche Excel-Kompatibilität. */
 const SEPARATOR = ';'
@@ -55,11 +56,49 @@ export function buildCsv(rows: PatientYearRow[]): string {
  * dass deutsches Excel Umlaute korrekt darstellt.
  */
 export function downloadCsv(rows: PatientYearRow[], year: number): void {
-  const blob = new Blob([UTF8_BOM + buildCsv(rows)], { type: 'text/csv;charset=utf-8;' })
+  triggerCsvDownload(buildCsv(rows), `beatmungstage_${year}.csv`)
+}
+
+// ---- Rohdaten-Export je Episode (mit „Von/Bis") --------------------------
+
+const EPISODE_HEADERS = [
+  'Fallnummer',
+  'Name',
+  'Therapieart',
+  'Beginn (Datum)',
+  'Von',
+  'Ende (Datum)',
+  'Bis',
+  'Stunden',
+]
+
+/**
+ * CSV der einzelnen Therapie-Läufe (eine Zeile je zusammenhängender Episode) mit
+ * „Von"/„Bis". Rein/deterministisch.
+ */
+export function buildEpisodeCsv(rows: EpisodeRow[]): string {
+  const lines = [EPISODE_HEADERS.join(SEPARATOR)]
+  for (const r of rows) {
+    lines.push(
+      [r.caseNumber, r.name, r.therapyLabel, r.startDate, r.from, r.endDate, r.to, r.hours]
+        .map(escapeField)
+        .join(SEPARATOR),
+    )
+  }
+  return lines.join('\r\n')
+}
+
+export function downloadEpisodeCsv(rows: EpisodeRow[], year: number): void {
+  triggerCsvDownload(buildEpisodeCsv(rows), `therapie_rohdaten_vonbis_${year}.csv`)
+}
+
+/** Gemeinsamer Datei-Download (UTF-8-BOM für deutsches Excel). */
+function triggerCsvDownload(csv: string, filename: string): void {
+  const blob = new Blob([UTF8_BOM + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `beatmungstage_${year}.csv`
+  link.download = filename
   link.click()
   URL.revokeObjectURL(url)
 }

@@ -270,6 +270,12 @@ interface TherapyState {
    * ein verpasstes Ende nachzutragen; ohne Angabe gilt die aktuelle Stunde.
    */
   endTherapy: (patientId: string, therapyType: TherapyType, endStamp?: HourStamp) => void
+  /**
+   * Verwirft eine laufende Therapie OHNE Materialisierung (für einen
+   * versehentlichen „Läuft"-Klick): der offene Eintrag wird entfernt, es werden
+   * keine Stunden in die Historie geschrieben.
+   */
+  discardTherapy: (patientId: string, therapyType: TherapyType) => void
   mergeRemoteOpenTherapy: (open: OpenTherapy) => void
   applyRemoteOpenSnapshot: (open: OpenTherapy[]) => void
 
@@ -464,6 +470,13 @@ export const useTherapyStore = create<TherapyState>()(
           openTherapies: state.openTherapies.filter((o) => o.id !== id),
         }))
         for (const date of touchedDays) scheduleRecordPush(patientId, date, therapyType)
+        pushOpenTherapyDelete(id)
+      },
+
+      discardTherapy: (patientId, therapyType) => {
+        const id = openTherapyId(patientId, therapyType)
+        if (!get().openTherapies.some((o) => o.id === id)) return
+        set((state) => ({ openTherapies: state.openTherapies.filter((o) => o.id !== id) }))
         pushOpenTherapyDelete(id)
       },
 

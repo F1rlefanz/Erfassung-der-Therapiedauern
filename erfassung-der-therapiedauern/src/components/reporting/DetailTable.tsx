@@ -1,5 +1,7 @@
 import { buildPatientYearRows, sumPatientYearRows, type PatientYearRow } from '../../lib/exports/reportRows'
-import { downloadCsv } from '../../lib/exports/csvExport'
+import { buildEpisodeRows } from '../../lib/exports/episodeRows'
+import { downloadCsv, downloadEpisodeCsv } from '../../lib/exports/csvExport'
+import { useTherapyStore } from '../../store/therapyStore'
 import type { Patient, TherapyRecord } from '../../types'
 
 interface DetailTableProps {
@@ -25,6 +27,7 @@ const svg = {
  * (`no-print`) und deaktiviert, wenn keine Daten vorliegen.
  */
 function DetailTable({ patients, records, year }: DetailTableProps) {
+  const nowStamp = useTherapyStore((s) => s.nowStamp)
   const rows = buildPatientYearRows(patients, records, year)
   const totals = sumPatientYearRows(rows)
   const hasData = rows.length > 0
@@ -49,7 +52,22 @@ function DetailTable({ patients, records, year }: DetailTableProps) {
               <path d="m7 12 5 5 5-5" />
               <path d="M5 21h14" />
             </svg>
-            Als CSV herunterladen
+            CSV (aggregiert)
+          </button>
+
+          <button
+            type="button"
+            disabled={!hasData}
+            onClick={() => downloadEpisodeCsv(buildEpisodeRows(patients, records, nowStamp), year)}
+            title="Einzelne Therapie-Läufe mit Von/Bis (eine Zeile je zusammenhängender Episode)"
+            className="inline-flex items-center gap-2 rounded-sm border border-line px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg {...svg} aria-hidden="true">
+              <path d="M12 3v12" />
+              <path d="m7 12 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            CSV Rohdaten (Von/Bis)
           </button>
 
           <button

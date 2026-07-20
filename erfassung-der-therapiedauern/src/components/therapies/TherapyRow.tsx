@@ -40,6 +40,7 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
   const toggleHour = useTherapyStore((s) => s.toggleHour)
   const startTherapyNow = useTherapyStore((s) => s.startTherapyNow)
   const endTherapy = useTherapyStore((s) => s.endTherapy)
+  const discardTherapy = useTherapyStore((s) => s.discardTherapy)
   const clearTherapyDay = useTherapyStore((s) => s.clearTherapyDay)
   const removeTherapyForPatient = useTherapyStore((s) => s.removeTherapyForPatient)
   const totalRecords = useTherapyStore(
@@ -66,6 +67,14 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
         'der zu viel erfassten Stunden.',
     )
     if (ok) endTherapy(patientId, therapyType)
+  }
+
+  function handleDiscard() {
+    const ok = window.confirm(
+      `„${label}" verwerfen?\n\nDie laufende Markierung wird entfernt, OHNE Stunden zu ` +
+        'speichern — für einen versehentlichen Klick auf „Läuft".',
+    )
+    if (ok) discardTherapy(patientId, therapyType)
   }
 
   return (
@@ -104,6 +113,15 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
               className="rounded-xs border border-line px-1.5 py-0.5 text-xs font-medium text-ink transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               ■ Beenden
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscard}
+              title={`${label} verwerfen (versehentlich gestartet, ohne Stunden zu speichern)`}
+              aria-label={`${label} verwerfen`}
+              className="rounded-xs px-1 text-xs text-ink-muted transition-colors hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              ✕
             </button>
             <RunningBadge open={open} nowStamp={nowStamp} />
           </>
