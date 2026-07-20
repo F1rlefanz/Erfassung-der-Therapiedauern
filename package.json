@@ -5,12 +5,19 @@
   "description": "On-Premise-Monorepo: lokaler Sync-Server (Node + SQLite + Socket.io) fuer die Therapiedauern-App. Das React-Frontend liegt in erfassung-der-therapiedauern/.",
   "scripts": {
     "start:server": "node server/index.js",
-    "db:seed": "node server/seed.js"
+    "db:seed": "node server/seed.js",
+    "build:frontend": "npm --prefix erfassung-der-therapiedauern run build",
+    "build:all": "npm --prefix erfassung-der-therapiedauern install && npm run build:frontend",
+    "service:install": "node server/service/install-service.js",
+    "service:uninstall": "node server/service/uninstall-service.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "node-windows": "^1.0.0-beta.8"
   }
 }

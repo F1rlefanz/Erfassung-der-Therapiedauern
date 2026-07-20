@@ -87,12 +87,16 @@ const stmtUpsertPatient = db.prepare(`
     name        = excluded.name
 `)
 
+// Guard: Ein ÄLTERES Echo (z. B. von einem Client, der lange offline war und
+// beim Reconnect seinen alten Stand pusht) darf einen neueren Serverstand NICHT
+// überschreiben. Der WHERE-Zweig macht den Upsert dann zu einem No-Op.
 const stmtUpsertRecord = db.prepare(`
   INSERT INTO therapy_records (id, patient_id, date, therapy_type, hours_array, last_updated_at)
   VALUES (@id, @patientId, @date, @therapyType, @hoursJson, @lastUpdatedAt)
   ON CONFLICT(id) DO UPDATE SET
     hours_array     = excluded.hours_array,
     last_updated_at = excluded.last_updated_at
+  WHERE excluded.last_updated_at > therapy_records.last_updated_at
 `)
 
 // ---- Öffentliche API ----
@@ -226,6 +230,7 @@ const stmtUpsertOpenTherapy = db.prepare(`
   ON CONFLICT(id) DO UPDATE SET
     start_at        = excluded.start_at,
     last_updated_at = excluded.last_updated_at
+  WHERE excluded.last_updated_at > open_therapies.last_updated_at
 `)
 const stmtDeleteOpenTherapy = db.prepare('DELETE FROM open_therapies WHERE id = ?')
 
@@ -267,6 +272,30 @@ function bulkWrite(work) {
   db.transaction(work)()
 }
 
+/**
+ * Schreibt das WAL in die Hauptdatei zurück und schließt die Datenbank sauber.
+ * Beim Herunterfahren aufrufen, damit keine offenen WAL-Segmente zurückbleiben.
+ */
+function checkpointAndClose() {
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)')
+  } catch {
+    /* Checkpoint ist best effort */
+  }
+  db.close()
+}
+
+/**
+ * Konsistente Kopie der Datenbank nach `destPath` (Hot-Backup). Vor dem Kopieren
+ * wird das WAL in die Hauptdatei gemergt; da better-sqlite3 synchron und
+ * single-threaded ist, findet währenddessen kein konkurrierender Schreibzugriff
+ * statt.
+ */
+function backupTo(destPath) {
+  db.pragma('wal_checkpoint(TRUNCATE)')
+  fs.copyFileSync(DB_PATH, destPath)
+}
+
 module.exports = {
   DB_PATH,
   getAllPatients,
@@ -283,4 +312,6 @@ module.exports = {
   deletePatient,
   clearAll,
   bulkWrite,
+  checkpointAndClose,
+  backupTo,
 }
