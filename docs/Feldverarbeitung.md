@@ -25,6 +25,13 @@ entweder markiert (Therapie lief) oder nicht.
   gekennzeichneten Feldern (Fallzahlen und TISS-28-Punkte der
   Schweregradstatistik).
 
+> **Konvention Sommer-/Winterzeit:** Jeder Kalendertag hat im Raster **immer 24
+> Stunden-Spalten** (0–23), unabhängig von der Zeitumstellung. An den zwei
+> Umstellungstagen im Jahr hat der Tag real 23 bzw. 25 Stunden — das Raster bleibt
+> bewusst bei 24 nominalen Stunden. Das ist die bewusst gewählte klinische
+> Konvention (eine markierte Stunde = eine Spalte), keine Ungenauigkeit der
+> Berechnung: Alle abgeleiteten Kennzahlen zählen exakt die markierten Spalten.
+
 ---
 
 ## 2. Das Beispiel-Szenario (Grundlage aller Screenshots)
