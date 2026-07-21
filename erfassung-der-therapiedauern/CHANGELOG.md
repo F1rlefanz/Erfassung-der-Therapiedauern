@@ -5,6 +5,30 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.16.0] - 2026-07-21 — UI-Feinschliff & Prognose-Verhalten
+
+### Added
+- **Y-Achsen mit Einheit** in den Analyse-Charts („Beatmungstage" bzw.
+  „Aktive Tage"), damit die Diagramme ohne Zusatzerklärung lesbar sind.
+
+### Changed
+- **Navigation bleibt beim Scrollen sichtbar** (die Seitenleiste „klebt" jetzt
+  am oberen Rand und scrollt bei Bedarf für sich).
+- **Reihenfolge in der Navigation**: „Reporting & Controlling" steht nun vor
+  „Analysen & Graphen".
+- **Reporting-Tabs umbenannt** in „Schweregradstatistiken" und „Export".
+- **Erfassung startet immer auf „heute"**: Das Datumsfeld merkt sich nicht mehr
+  den zuletzt gewählten Tag, sondern öffnet sich stets auf dem aktuellen Datum
+  (passt zum Charakter eines Tageswerkzeugs).
+- **Dashboard**: Die redundante Schnellzugriff-Kachelreihe wurde entfernt — die
+  Seitenleiste übernimmt diese Funktion vollständig.
+
+### Fixed
+- **Keine Schein-Prognose bei leeren Charts mehr**: Die gestrichelte
+  Jahresend-Prognose wird nur noch gezeichnet, wenn für das Jahr tatsächlich
+  Beatmungstage vorliegen. Zuvor konnte über die Restmonate eine flache
+  0-Linie erscheinen, obwohl es nichts hochzurechnen gab.
+
 ## [0.15.2] - 2026-07-20 — Betrieb: CI, Log-Rotation, Node-Pin
 
 ### Added
