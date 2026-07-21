@@ -5,6 +5,17 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.15.2] - 2026-07-20 — Betrieb: CI, Log-Rotation, Node-Pin
+
+### Added
+- **CI-Pipeline** (GitHub Actions): Typecheck, Lint, Tests und Build laufen bei
+  jedem Push/PR automatisch; zusätzlich eine Server-Syntaxprüfung.
+
+### Technical
+- **Log-Rotation**: alte Tages-Logdateien werden auf die letzten 30 begrenzt.
+- **Node-Version** über `engines` (>=20) und `.nvmrc` (22) festgelegt.
+- Sommer-/Winterzeit-Konvention des 24-Stunden-Rasters dokumentiert.
+
 ## [0.15.1] - 2026-07-20 — Sync-Konsistenz & Server-Validierung
 
 ### Fixed
