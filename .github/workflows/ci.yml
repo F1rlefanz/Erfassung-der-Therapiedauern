@@ -1,0 +1,49 @@
+name: CI
+
+# Läuft bei jedem Push und Pull Request: Typecheck, Lint, Tests und Build des
+# Frontends sowie eine Syntaxprüfung des Servers. So fällt eine Regression auf,
+# bevor sie nach `main` gelangt.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (Typecheck · Lint · Test · Build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: erfassung-der-therapiedauern
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: erfassung-der-therapiedauern/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build (inkl. Typecheck)
+        run: npm run build
+
+  server:
+    name: Server (Syntaxprüfung)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check server/index.js
+          node --check server/db.js
+          node --check server/logger.js
+          node --check server/validate.js
+          node --check server/service/install-service.js
+          node --check server/service/uninstall-service.js
