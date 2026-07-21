@@ -10,8 +10,8 @@ import DetailTable from '../components/reporting/DetailTable'
 type ReportingTab = 'schweregrad' | 'mdk'
 
 const TABS: { id: ReportingTab; label: string }[] = [
-  { id: 'schweregrad', label: 'Schweregrad' },
-  { id: 'mdk', label: 'MDK-Export' },
+  { id: 'schweregrad', label: 'Schweregradstatistiken' },
+  { id: 'mdk', label: 'Export' },
 ]
 
 /**

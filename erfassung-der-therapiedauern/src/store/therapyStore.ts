@@ -742,7 +742,9 @@ export const useTherapyStore = create<TherapyState>()(
       // Nur den fachlichen Zustand persistieren — Paint-Zustand und Sync-Status
       // (isPainting/paintValue/paintTarget/syncStatus) gehören nicht in den Cache.
       partialize: (state) => ({
-        selectedDate: state.selectedDate,
+        // selectedDate wird bewusst NICHT persistiert: Die App soll bei jedem
+        // Öffnen auf „heute" starten (Tageswerkzeug), nicht auf dem zuletzt
+        // gewählten Tag hängen bleiben.
         patients: state.patients,
         therapyRecords: state.therapyRecords,
         // Aggregate mitpersistieren, damit Prognosen auch offline gelernte

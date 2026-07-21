@@ -1,12 +1,7 @@
-import { Link } from 'react-router-dom'
-import { NAV_ITEMS } from '../components/layout/navItems'
 import { useTherapyStore } from '../store/therapyStore'
 import { useEffectiveRecords } from '../store/useEffectiveRecords'
 import { formatDateDE, formatDateTimeDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
-
-/** Schnellzugriff-Ziele: alle Navigationseinträge außer dem Dashboard selbst. */
-const QUICK_LINKS = NAV_ITEMS.filter((item) => item.to !== '/')
 
 function DashboardPage() {
   const patients = useTherapyStore((s) => s.patients)
@@ -37,30 +32,6 @@ function DashboardPage() {
           Therapie-Tracking — heute ist der {formatDateDE(today)}
         </p>
       </header>
-
-      {/* Schnellzugriff */}
-      <section aria-labelledby="quick-heading" className="space-y-3">
-        <h2 id="quick-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-          Schnellzugriff
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {QUICK_LINKS.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="group flex items-start gap-3 rounded-md border border-line bg-surface p-4 transition-colors hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <span className="mt-0.5 text-ink-muted transition-colors group-hover:text-primary">
-                {item.icon}
-              </span>
-              <span>
-                <span className="block font-medium text-ink">{item.label}</span>
-                <span className="mt-0.5 block text-sm text-ink-muted">{item.description}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {/* Aktuelle Übersicht — live aus dem Store */}
       <section aria-labelledby="overview-heading" className="space-y-3">

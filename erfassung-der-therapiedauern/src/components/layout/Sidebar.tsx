@@ -8,7 +8,7 @@ import SyncStatusBadge from './SyncStatusBadge'
  */
 function Sidebar() {
   return (
-    <aside className="no-print flex shrink-0 flex-col border-line bg-surface sm:w-60 sm:border-r max-sm:border-b">
+    <aside className="no-print flex shrink-0 flex-col border-line bg-surface sm:sticky sm:top-0 sm:h-svh sm:w-60 sm:self-start sm:overflow-y-auto sm:border-r max-sm:border-b">
       <div className="flex items-center gap-2 border-b border-line px-5 py-4">
         <span className="inline-block h-6 w-1.5 rounded-full bg-primary" aria-hidden="true" />
         <span className="font-heading text-sm font-semibold leading-tight text-ink">

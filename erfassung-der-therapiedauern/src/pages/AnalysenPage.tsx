@@ -137,7 +137,7 @@ function AnalysenPage() {
 
         <div className="mt-4 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
+            <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
               <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="month"
@@ -147,9 +147,16 @@ function AnalysenPage() {
               />
               <YAxis
                 allowDecimals={false}
+                width={52}
                 tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
+                label={{
+                  value: 'Beatmungstage',
+                  angle: -90,
+                  position: 'insideLeft',
+                  style: { fill: 'var(--ui-ink-muted)', fontSize: 11, textAnchor: 'middle' },
+                }}
               />
               <Tooltip cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.06 }} content={<MonthlyTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
@@ -180,8 +187,10 @@ function AnalysenPage() {
                 isAnimationActive={false}
               />
 
-              {/* Prognose für Restmonate: gestrichelte Linie in der Hauptfarbe */}
-              {isCurrentYear && (
+              {/* Prognose für Restmonate: gestrichelte Linie in der Hauptfarbe.
+                  Nur, wenn tatsächlich hochgerechnet wird (genug Datenbasis UND
+                  bereits Ist-Beatmungen) — sonst weder Linie noch Legende. */}
+              {projection.isProjected && (
                 <Line
                   name="Prognose"
                   dataKey={`${selectedYear}${FORECAST_SUFFIX}`}
@@ -208,7 +217,7 @@ function AnalysenPage() {
         {hasDistributionData ? (
           <div className="mt-4 h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={distributionData} margin={{ top: 16, right: 8, bottom: 0, left: -16 }}>
+              <BarChart data={distributionData} margin={{ top: 16, right: 8, bottom: 0, left: 4 }}>
                 <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="name"
@@ -218,9 +227,16 @@ function AnalysenPage() {
                 />
                 <YAxis
                   allowDecimals={false}
+                  width={52}
                   tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
+                  label={{
+                    value: 'Aktive Tage',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { fill: 'var(--ui-ink-muted)', fontSize: 11, textAnchor: 'middle' },
+                  }}
                 />
                 <Tooltip
                   cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.08 }}

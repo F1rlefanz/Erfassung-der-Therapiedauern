@@ -25,7 +25,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/',
     label: 'Dashboard',
-    description: 'Übersicht & Schnellzugriff',
+    description: 'Tagesübersicht auf einen Blick',
     end: true,
     icon: (
       <svg {...svg} aria-hidden="true">
@@ -48,20 +48,6 @@ export const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    to: '/analysen',
-    label: 'Analysen & Graphen',
-    description: 'Monatswerte, Jahresvergleich & Prognosen',
-    icon: (
-      // lucide: bar-chart-3
-      <svg {...svg} aria-hidden="true">
-        <path d="M3 3v18h18" />
-        <path d="M18 17V9" />
-        <path d="M13 17V5" />
-        <path d="M8 17v-3" />
-      </svg>
-    ),
-  },
-  {
     to: '/reporting',
     label: 'Reporting & Controlling',
     description: 'Schweregradstatistik & MDK-Export',
@@ -72,6 +58,20 @@ export const NAV_ITEMS: NavItem[] = [
         <rect width="18" height="18" x="3" y="3" rx="2" />
         <path d="M3 9h18" />
         <path d="M3 15h18" />
+      </svg>
+    ),
+  },
+  {
+    to: '/analysen',
+    label: 'Analysen & Graphen',
+    description: 'Monatswerte, Jahresvergleich & Prognosen',
+    icon: (
+      // lucide: bar-chart-3
+      <svg {...svg} aria-hidden="true">
+        <path d="M3 3v18h18" />
+        <path d="M18 17V9" />
+        <path d="M13 17V5" />
+        <path d="M8 17v-3" />
       </svg>
     ),
   },

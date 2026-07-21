@@ -139,6 +139,24 @@ export function buildYearProjection(
     }
   }
 
+  // Laufendes Jahr, aber (noch) keine einzige Ist-Beatmung: KEINE Prognose
+  // zeichnen. Sonst erschiene eine gestrichelte 0-Linie über die Restmonate,
+  // obwohl der Chart faktisch leer ist.
+  if (ytd === 0) {
+    return {
+      ytd: 0,
+      yearEnd: 0,
+      isProjected: false,
+      confidence: 0,
+      insufficientData: false,
+      chart: Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        ist: i + 1 <= endMonth ? cumulative[i + 1] : null,
+        prognose: null,
+      })),
+    }
+  }
+
   // Laufendes Jahr: Ist bis endMonth, danach gestrichelte Prognose.
   const yearEnd = projectYearEnd(ytd, todayIso, model, weights)
   const monthWeight = (m: number) => (model === 'seasonal' ? weights[m - 1] : daysInMonth(year, m))
@@ -208,18 +226,24 @@ export function buildMonthlyComparison(
 
   // Isolierte Monats-Prognose (nur laufendes, gewähltes Jahr, Zukunftsmonate).
   const forecast = Array<number | null>(13).fill(null)
+  let hasForecast = false
   if (isCurrentSelected) {
     const actual = perYear.get(selectedYear) ?? Array<number>(13).fill(0)
     let ytd = 0
     for (let m = 1; m <= currentMonth; m++) ytd += actual[m]
-    const yearEnd = projectYearEnd(ytd, todayIso, model, weights)
-    const remaining = Math.max(0, yearEnd - ytd)
-    const monthWeight = (m: number) =>
-      model === 'seasonal' ? weights[m - 1] : daysInMonth(selectedYear, m)
-    let remainingSum = 0
-    for (let m = currentMonth + 1; m <= 12; m++) remainingSum += monthWeight(m)
-    for (let m = currentMonth + 1; m <= 12; m++) {
-      forecast[m] = remainingSum > 0 ? Math.round((remaining * monthWeight(m)) / remainingSum) : 0
+    // Ohne bisherige Ist-Beatmung keine Prognoselinie zeichnen (bliebe sonst
+    // flach auf 0 über die Restmonate).
+    if (ytd > 0) {
+      hasForecast = true
+      const yearEnd = projectYearEnd(ytd, todayIso, model, weights)
+      const remaining = Math.max(0, yearEnd - ytd)
+      const monthWeight = (m: number) =>
+        model === 'seasonal' ? weights[m - 1] : daysInMonth(selectedYear, m)
+      let remainingSum = 0
+      for (let m = currentMonth + 1; m <= 12; m++) remainingSum += monthWeight(m)
+      for (let m = currentMonth + 1; m <= 12; m++) {
+        forecast[m] = remainingSum > 0 ? Math.round((remaining * monthWeight(m)) / remainingSum) : 0
+      }
     }
   }
 
@@ -231,7 +255,7 @@ export function buildMonthlyComparison(
       const isFutureOfCurrent = y === currentYear && m > currentMonth
       point[String(y)] = isFutureOfCurrent ? null : (perYear.get(y)?.[m] ?? 0)
     }
-    if (isCurrentSelected) point[`${selectedYear}${FORECAST_SUFFIX}`] = forecast[m]
+    if (hasForecast) point[`${selectedYear}${FORECAST_SUFFIX}`] = forecast[m]
     result.push(point)
   }
   return result
