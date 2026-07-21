@@ -217,5 +217,8 @@ server.listen(PORT, () => {
   log.info(`[server] SQLite-Datei: ${db.DB_PATH}`)
   log.info(`[server] Frontend: ${serveFrontend ? FRONTEND_DIST : '(nicht gebaut – reiner Sync-Server)'}`)
   runBackup() // einmal beim Start …
-  setInterval(runBackup, BACKUP_INTERVAL_MS).unref() // … dann täglich
+  setInterval(() => {
+    runBackup()
+    log.pruneLogs() // alte Logdateien mit aufräumen
+  }, BACKUP_INTERVAL_MS).unref() // … dann täglich
 })

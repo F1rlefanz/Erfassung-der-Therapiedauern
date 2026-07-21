@@ -42,6 +42,24 @@ function write(level, args) {
   }
 }
 
+// Alte Tages-Logdateien über der Aufbewahrungsgrenze entfernen, damit sie sich
+// nicht unbegrenzt ansammeln. Bei Serverstart und periodisch aufgerufen.
+const LOG_KEEP = Number(process.env.LOG_KEEP || 30)
+function pruneLogs() {
+  try {
+    const files = fs
+      .readdirSync(LOG_DIR)
+      .filter((f) => /^server-\d{4}-\d{2}-\d{2}\.log$/.test(f))
+      .sort()
+    while (files.length > LOG_KEEP) {
+      fs.unlinkSync(path.join(LOG_DIR, files.shift()))
+    }
+  } catch {
+    /* Aufräumen darf den Server nie stören */
+  }
+}
+pruneLogs()
+
 module.exports = {
   info: (...args) => {
     console.log(...args)
@@ -51,5 +69,6 @@ module.exports = {
     console.error(...args)
     write('ERROR', args)
   },
+  pruneLogs,
   LOG_DIR,
 }
