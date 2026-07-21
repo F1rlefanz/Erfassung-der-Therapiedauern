@@ -201,11 +201,13 @@ export type MonthlyComparisonPoint = Record<string, number | string | null>
  * Beatmungstagen des gewählten Jahres UND aller Vorjahre als flache Keys
  * (z. B. `{ month: 'Jan', '2026': 17, '2025': 19, '2024': 29 }`).
  *
- * Ist `selectedYear` das laufende Jahr, werden für die **zukünftigen** Monate die
- * isolierten prognostizierten Monatswerte unter dem Key `"<jahr>_Prognose"`
- * ergänzt (Restmenge bis zur Jahresend-Prognose, verteilt nach den Monats-
- * gewichten des gewählten Modells). Monate des laufenden Jahres ohne Ist-Daten
- * bleiben `null`, damit Overlay-Linien nicht auf 0 abfallen.
+ * Ist `selectedYear` das laufende Jahr **und liegen bereits Ist-Beatmungen vor**,
+ * werden für die **zukünftigen** Monate die isolierten prognostizierten
+ * Monatswerte unter dem Key `"<jahr>_Prognose"` ergänzt (Restmenge bis zur
+ * Jahresend-Prognose, verteilt nach den Monatsgewichten des gewählten Modells).
+ * Ohne Ist-Daten wird KEIN Prognose-Key gesetzt (sonst erschiene eine flache
+ * 0-Linie). Monate des laufenden Jahres ohne Ist-Daten bleiben `null`, damit
+ * Overlay-Linien nicht auf 0 abfallen.
  */
 export function buildMonthlyComparison(
   records: TherapyRecord[],
