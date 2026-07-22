@@ -5,6 +5,27 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.17.0] - 2026-07-22 — Jahresvergleich für alle Therapiearten, UI-ToDos
+
+### Added
+- **Jahresvergleichs-Charts mit Prognose für CRRT und ILA/ECMO** — bisher gab
+  es das nur für Beatmung. Alle drei Therapiearten zeigen jetzt Monatswerte,
+  Vorjahresvergleich und Jahresend-Prognose (Linear/Saisonal).
+- **Vergleichsjahre einzeln auswählbar**: In den Analyse-Charts lassen sich
+  die eingeblendeten Vorjahre per Klick auf Toggle-Chips ein- und ausblenden,
+  statt immer alle verfügbaren Jahre gleichzeitig zu zeigen.
+- **Charts blenden sich aus, wenn keine Daten vorliegen** — statt eines leeren
+  Diagramms erscheint ein kurzer Hinweistext (gilt jetzt auch für CRRT/ILA-ECMO).
+
+### Changed
+- **Vorjahres-Linien deutlich unterscheidbar**: eigene Farbe + eigenes
+  Strichmuster je Vergleichsjahr statt der bisherigen Grau/Grau-gestrichelt-
+  Abstufung, die ab dem dritten Jahr kaum noch zu erkennen war.
+- **Erfassung**: Die Tages-Übersicht (Fallzahl & Gesamtzeit) steht jetzt oben,
+  direkt unter der Kopfzeile — statt als Fußzeile ganz unten in der Tabelle.
+- **Reporting**: Die ICU-Tabelle hat auf der Reporting-Seite mehr Platz und
+  scrollt seltener horizontal (alle anderen Seiten bleiben unverändert).
+
 ## [0.16.0] - 2026-07-21 — UI-Feinschliff & Prognose-Verhalten
 
 ### Added
