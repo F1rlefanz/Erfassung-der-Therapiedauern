@@ -79,7 +79,7 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('sync:init', handlers.onInit)
   s.on('patient:upsert', handlers.onPatientUpsert)
   s.on('record:upsert', handlers.onRecordUpsert)
-  s.on('aggregates:monthly-ventilation', handlers.onMonthlyAggregates)
+  s.on('aggregates:monthly-therapy', handlers.onMonthlyAggregates)
   s.on('sync:severity_stats', handlers.onSeverityInit)
   s.on('severity_stat:upsert', handlers.onSeverityUpsert)
   s.on('patient:delete', handlers.onPatientDelete)

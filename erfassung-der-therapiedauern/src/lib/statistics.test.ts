@@ -4,6 +4,7 @@ import {
   availableYears,
   buildMonthlyComparison,
   buildYearProjection,
+  monthlyTherapyDays,
   monthlyVentilation,
 } from './statistics'
 import { ICU_FALLBACK_WEIGHTS } from './projections/seasonalWeights'
@@ -17,7 +18,7 @@ function rec(date: string, therapyType: TherapyType = 'beatmung'): TherapyRecord
 describe('availableYears', () => {
   it('vereint aktuelles Jahr, Record-Jahre und Aggregat-Jahre (absteigend)', () => {
     const records = [rec('2024-03-05'), rec('2026-01-02')]
-    const aggregates = [{ year: 2025, month: 1, ventilationDays: 10 }]
+    const aggregates = [{ year: 2025, month: 1, therapyType: 'beatmung' as const, days: 10 }]
     expect(availableYears(records, aggregates, 2026)).toEqual([2026, 2025, 2024])
   })
 
@@ -54,6 +55,23 @@ describe('monthlyVentilation', () => {
     expect(perMonth[1]).toBe(2) // Januar
     expect(perMonth[2]).toBe(0) // Februar (kein Wert, NICHT kumuliert)
     expect(perMonth[3]).toBe(1) // März
+  })
+})
+
+describe('monthlyTherapyDays', () => {
+  it('filtert nach der übergebenen Therapieart (z. B. CRRT)', () => {
+    const records = [
+      rec('2024-01-10', 'crrt'),
+      rec('2024-01-20', 'crrt'),
+      rec('2024-01-10', 'beatmung'), // andere Art, zählt nicht mit
+    ]
+    const perMonth = monthlyTherapyDays(records, 2024, 'crrt')
+    expect(perMonth[1]).toBe(2)
+  })
+
+  it('ohne therapyType-Argument entspricht sie monthlyVentilation (Default Beatmung)', () => {
+    const records = [rec('2024-01-10'), rec('2024-01-20')]
+    expect(monthlyTherapyDays(records, 2024)).toEqual(monthlyVentilation(records, 2024))
   })
 })
 
@@ -100,6 +118,22 @@ describe('buildMonthlyComparison (YoY)', () => {
     expect(jul['2026_Prognose']).toBeNull() // Vergangenheit/aktuell -> keine Prognose
     expect(aug['2026']).toBeNull() // noch keine Ist-Daten
     expect(typeof aug['2026_Prognose']).toBe('number') // Prognosewert vorhanden
+  })
+
+  it('mit therapyType-Argument: nutzt nur Records dieser Art (z. B. CRRT)', () => {
+    const crrtRecords = [rec('2024-01-10', 'crrt'), rec('2024-01-20', 'crrt'), rec('2025-01-02', 'crrt')]
+    const data = buildMonthlyComparison(
+      crrtRecords,
+      2024,
+      [2025, 2024],
+      2026,
+      '2026-07-16',
+      'seasonal',
+      [...ICU_FALLBACK_WEIGHTS],
+      'crrt',
+    )
+    expect(data[0]['2024']).toBe(2) // Januar 2024: 2 CRRT-Tage
+    expect(data[0]['2025']).toBe(1) // Januar 2025: 1 CRRT-Tag
   })
 })
 

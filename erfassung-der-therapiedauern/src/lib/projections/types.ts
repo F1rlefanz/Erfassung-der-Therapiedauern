@@ -1,16 +1,19 @@
+import type { TherapyType } from '../../types'
+
 /** Verfügbare Prognose-Modelle. */
 export type ProjectionModel = 'linear' | 'seasonal'
 
 /**
- * Monatliches Aggregat (Beatmungstage) eines Jahres — vom On-Prem-Server als
- * kompakte Kennzahl geliefert, damit nicht der gesamte Rohdatensatz aller Jahre
- * in den Client-RAM geladen werden muss.
+ * Monatliches Aggregat (aktive Tage einer Therapieart) eines Jahres — vom
+ * On-Prem-Server als kompakte Kennzahl geliefert, damit nicht der gesamte
+ * Rohdatensatz aller Jahre in den Client-RAM geladen werden muss.
  */
 export interface MonthlyAggregate {
   year: number
   /** Monat 1–12. */
   month: number
-  ventilationDays: number
+  therapyType: TherapyType
+  days: number
 }
 
 /** Herkunft der Saison-Gewichte: aus Vorjahren gelernt oder klinischer Fallback. */

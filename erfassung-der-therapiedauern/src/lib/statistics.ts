@@ -1,5 +1,5 @@
-import type { TherapyRecord } from '../types'
-import { isVentilationDay } from './therapyCalculator'
+import type { TherapyRecord, TherapyType } from '../types'
+import { VENTILATION_TYPE } from './therapyTypes'
 import {
   daysInMonth,
   hasEnoughDataForProjection,
@@ -19,15 +19,24 @@ export const MONTH_SHORT = [
   'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
 ]
 
-/** Absolute (nicht-kumulierte) Beatmungstage je Monat (Index 1–12) für ein Jahr. */
-export function monthlyVentilation(records: TherapyRecord[], year: number): number[] {
+/** Absolute (nicht-kumulierte) aktive Tage je Monat (Index 1–12) einer Therapieart für ein Jahr. */
+export function monthlyTherapyDays(
+  records: TherapyRecord[],
+  year: number,
+  therapyType: TherapyType = VENTILATION_TYPE,
+): number[] {
   const perMonth = Array<number>(13).fill(0)
   for (const r of records) {
     if (!r.date.startsWith(`${year}-`)) continue
-    if (!isVentilationDay(r)) continue
+    if (r.therapyType !== therapyType || !r.hours.some(Boolean)) continue
     perMonth[Number(r.date.slice(5, 7))] += 1
   }
   return perMonth
+}
+
+/** @deprecated Wrapper für Rückwärtskompatibilität — nutzt intern {@link monthlyTherapyDays}. */
+export function monthlyVentilation(records: TherapyRecord[], year: number): number[] {
+  return monthlyTherapyDays(records, year, VENTILATION_TYPE)
 }
 
 /**
@@ -91,6 +100,7 @@ export function buildYearProjection(
   todayIso: string,
   model: ProjectionModel,
   weights: number[],
+  therapyType: TherapyType = VENTILATION_TYPE,
 ): YearProjection {
   const endMonth = isCurrentYear ? Number(todayIso.slice(5, 7)) : 12
 
@@ -98,7 +108,7 @@ export function buildYearProjection(
   for (const r of records) {
     if (!r.date.startsWith(`${year}-`)) continue
     if (isCurrentYear && r.date > todayIso) continue
-    if (!isVentilationDay(r)) continue
+    if (r.therapyType !== therapyType || !r.hours.some(Boolean)) continue
     perMonth[Number(r.date.slice(5, 7))] += 1
   }
 
@@ -217,10 +227,11 @@ export function buildMonthlyComparison(
   todayIso: string,
   model: ProjectionModel,
   weights: number[],
+  therapyType: TherapyType = VENTILATION_TYPE,
 ): MonthlyComparisonPoint[] {
   const currentMonth = Number(todayIso.slice(5, 7))
   const perYear = new Map<number, number[]>()
-  for (const y of years) perYear.set(y, monthlyVentilation(records, y))
+  for (const y of years) perYear.set(y, monthlyTherapyDays(records, y, therapyType))
 
   // Ohne ausreichende Datenbasis wird auch hier nicht hochgerechnet — sonst
   // erschiene im Chart eine Prognoselinie, die die Jahres-KPI gar nicht ausweist.

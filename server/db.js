@@ -175,21 +175,20 @@ const deletePatient = db.transaction((patientId) => {
   stmtDeletePatient.run(patientId)
 })
 
-// Nur Beatmungs-Records mit Datum/Stunden — die Aggregation zählt Tage mit
-// mindestens einer markierten Stunde je (Jahr, Monat). So wandern nur die
-// kompakten Monatsaggregate zum Client, nicht der gesamte Rohdatensatz.
-const stmtVentilationRecords = db.prepare(
-  "SELECT date, hours_array FROM therapy_records WHERE therapy_type = 'beatmung'",
-)
+// Alle Records mit Datum/Stunden/Therapieart — die Aggregation zählt Tage mit
+// mindestens einer markierten Stunde je (Jahr, Monat, Therapieart). So wandern
+// nur die kompakten Monatsaggregate zum Client, nicht der gesamte Rohdatensatz.
+const stmtTherapyRecords = db.prepare('SELECT date, hours_array, therapy_type FROM therapy_records')
 
 /**
- * Aggregiert Beatmungstage je (Jahr, Monat) über alle Jahre. Ein Beatmungstag =
- * ein Beatmungs-Record mit ≥1 markierter Stunde. Rückgabe: kompakte Liste
- * { year, month, ventilationDays } für das Lern-Modell der Prognose.
+ * Aggregiert aktive Tage je (Jahr, Monat, Therapieart) über alle Jahre. Ein
+ * aktiver Tag = ein Record mit ≥1 markierter Stunde. Rückgabe: kompakte Liste
+ * { year, month, therapyType, days } für das Lern-Modell der Prognose (alle
+ * Therapiearten, nicht nur Beatmung).
  */
-function getMonthlyVentilationAggregates() {
-  const counts = new Map() // "YYYY-M" -> Anzahl
-  for (const row of stmtVentilationRecords.all()) {
+function getMonthlyTherapyAggregates() {
+  const counts = new Map() // "YYYY-M-therapyType" -> Anzahl
+  for (const row of stmtTherapyRecords.all()) {
     let hours
     try {
       hours = JSON.parse(row.hours_array)
@@ -200,12 +199,12 @@ function getMonthlyVentilationAggregates() {
     const year = Number(row.date.slice(0, 4))
     const month = Number(row.date.slice(5, 7))
     if (!year || !month) continue
-    const key = `${year}-${month}`
+    const key = `${year}-${month}-${row.therapy_type}`
     counts.set(key, (counts.get(key) || 0) + 1)
   }
-  return [...counts.entries()].map(([key, ventilationDays]) => {
-    const [year, month] = key.split('-').map(Number)
-    return { year, month, ventilationDays }
+  return [...counts.entries()].map(([key, days]) => {
+    const [year, month, therapyType] = key.split('-')
+    return { year: Number(year), month: Number(month), therapyType, days }
   })
 }
 
@@ -331,7 +330,7 @@ module.exports = {
   getAllRecords,
   upsertPatient,
   upsertRecord,
-  getMonthlyVentilationAggregates,
+  getMonthlyTherapyAggregates,
   getAllSeverityStats,
   upsertSeverityStat,
   getAllOpenTherapies,

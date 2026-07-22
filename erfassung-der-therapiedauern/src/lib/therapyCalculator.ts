@@ -44,6 +44,11 @@ export function ventilationDaysInMonth(
   )
 }
 
+/** true, wenn für diese Therapieart mindestens eine Stunde erfasst ist. */
+export function hasDataForType(records: TherapyRecord[], type: TherapyType): boolean {
+  return records.some((r) => r.therapyType === type && r.hours.some(Boolean))
+}
+
 /** Ein Eintrag der Therapiearten-Verteilung. */
 export interface TherapyTypeStat {
   type: TherapyType

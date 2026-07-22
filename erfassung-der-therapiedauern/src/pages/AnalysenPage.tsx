@@ -1,30 +1,37 @@
 import { useMemo, useState } from 'react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ComposedChart,
-  LabelList,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useTherapyStore } from '../store/therapyStore'
 import { useEffectiveRecords } from '../store/useEffectiveRecords'
-import { THERAPY_TYPES } from '../lib/therapyTypes'
-import { therapyTypeDistribution, totalTherapyHours, totalVentilationDays } from '../lib/therapyCalculator'
+import { THERAPY_TYPES, VENTILATION_TYPE } from '../lib/therapyTypes'
+import {
+  hasDataForType,
+  therapyTypeDistribution,
+  totalTherapyHours,
+  totalVentilationDays,
+} from '../lib/therapyCalculator'
 import { computeSeasonalWeights } from '../lib/projections/seasonalWeights'
-import type { ProjectionModel } from '../lib/projections/types'
-import { MIN_MONTHS_FOR_PROJECTION } from '../lib/projections/projections'
+import type { ProjectionModel, SeasonalWeights } from '../lib/projections/types'
 import TherapyStatsTable from '../components/analysen/TherapyStatsTable'
-import { availableYears, buildMonthlyComparison, buildYearProjection, FORECAST_SUFFIX } from '../lib/statistics'
+import { availableYears, buildMonthlyComparison, buildYearProjection } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
-import ProjectionToggle from '../components/analysen/ProjectionToggle'
 import YearSelector from '../components/YearSelector'
+import YearOverlaySelector from '../components/analysen/YearOverlaySelector'
+import TherapyYearComparisonChart from '../components/analysen/TherapyYearComparisonChart'
+import type { TherapyType } from '../types'
+
+/** Erläuterungstext zur Prognose-Datenbasis, je Therapieart und Modell. */
+function buildInfoText(model: ProjectionModel, weights: SeasonalWeights, therapyType: TherapyType): string {
+  if (model === 'linear') {
+    return 'Lineare Hochrechnung auf Basis des bisherigen Tagesdurchschnitts — ohne Saisonalität, nur als Vergleich.'
+  }
+  if (weights.source === 'historical') {
+    return `Basiert auf der historischen Monatsverteilung von ${weights.yearsUsed} Vorjahr${weights.yearsUsed === 1 ? '' : 'en'}.`
+  }
+  return therapyType === VENTILATION_TYPE
+    ? 'Klinischer Standard-Fallback (Winter hoch, Sommer niedrig) — noch keine Vorjahresdaten vorhanden.'
+    : 'Gleichverteilter Fallback über alle Monate — noch keine Vorjahresdaten vorhanden.'
+}
 
 function AnalysenPage() {
   const records = useEffectiveRecords()
@@ -35,13 +42,31 @@ function AnalysenPage() {
 
   const [model, setModel] = useState<ProjectionModel>('seasonal')
   const [selectedYear, setSelectedYear] = useState(currentYear)
+  const [deselectedOverlayYears, setDeselectedOverlayYears] = useState<Set<number>>(new Set())
 
   const years = useMemo(
     () => availableYears(records, monthlyHistory, currentYear),
     [records, monthlyHistory, currentYear],
   )
   const isCurrentYear = selectedYear === currentYear
-  const overlayYears = years.filter((y) => y !== selectedYear)
+
+  const overlayYearCandidates = useMemo(
+    () => years.filter((y) => y !== selectedYear),
+    [years, selectedYear],
+  )
+  const overlayYears = useMemo(
+    () => overlayYearCandidates.filter((y) => !deselectedOverlayYears.has(y)),
+    [overlayYearCandidates, deselectedOverlayYears],
+  )
+
+  function toggleOverlayYear(year: number) {
+    setDeselectedOverlayYears((prev) => {
+      const next = new Set(prev)
+      if (next.has(year)) next.delete(year)
+      else next.add(year)
+      return next
+    })
+  }
 
   const yearRecords = useMemo(
     () => records.filter((r) => r.date.startsWith(`${selectedYear}-`)),
@@ -54,27 +79,44 @@ function AnalysenPage() {
     const meta = THERAPY_TYPES.find((t) => t.type === d.type)
     return { name: meta?.short ?? d.label, label: d.label, days: d.days, hours: d.hours }
   })
-  const hasDistributionData = yearRecords.some((r) => r.hours.some(Boolean))
+  const hasDistributionData = THERAPY_TYPES.some((meta) => hasDataForType(yearRecords, meta.type))
 
-  const weights = useMemo(
-    () => computeSeasonalWeights(monthlyHistory, currentYear),
-    [monthlyHistory, currentYear],
+  // Je Therapieart: Saison-Gewichte, Jahresend-Prognose und Monatsvergleich.
+  // Alle drei Therapiearten bekommen dieselbe Prognose-Infrastruktur (Nutzer-
+  // entscheidung: volle Parität statt nur Beatmung).
+  const perTypeData = useMemo(
+    () =>
+      THERAPY_TYPES.map((meta) => {
+        const weights = computeSeasonalWeights(monthlyHistory, currentYear, meta.type)
+        const projection = buildYearProjection(
+          records,
+          selectedYear,
+          isCurrentYear,
+          today,
+          model,
+          weights.weights,
+          meta.type,
+        )
+        const monthlyData = buildMonthlyComparison(
+          records,
+          selectedYear,
+          years,
+          currentYear,
+          today,
+          model,
+          weights.weights,
+          meta.type,
+        )
+        return {
+          meta,
+          weights,
+          projection,
+          monthlyData,
+          hasData: hasDataForType(yearRecords, meta.type),
+        }
+      }),
+    [records, monthlyHistory, currentYear, selectedYear, isCurrentYear, today, model, years, yearRecords],
   )
-  const projection = useMemo(
-    () => buildYearProjection(records, selectedYear, isCurrentYear, today, model, weights.weights),
-    [records, selectedYear, isCurrentYear, today, model, weights.weights],
-  )
-  const monthlyData = useMemo(
-    () => buildMonthlyComparison(records, selectedYear, years, currentYear, today, model, weights.weights),
-    [records, selectedYear, years, currentYear, today, model, weights.weights],
-  )
-
-  const infoText =
-    model === 'linear'
-      ? 'Lineare Hochrechnung auf Basis des bisherigen Tagesdurchschnitts — ohne Saisonalität, nur als Vergleich.'
-      : weights.source === 'historical'
-        ? `Basiert auf der historischen Monatsverteilung von ${weights.yearsUsed} Vorjahr${weights.yearsUsed === 1 ? '' : 'en'}.`
-        : 'Klinischer Standard-Fallback (Winter hoch, Sommer niedrig) — noch keine Vorjahresdaten vorhanden.'
 
   return (
     <div className="space-y-6">
@@ -88,124 +130,36 @@ function AnalysenPage() {
         <YearSelector years={years} value={selectedYear} onChange={setSelectedYear} />
       </header>
 
+      <YearOverlaySelector
+        years={overlayYearCandidates}
+        selected={overlayYears}
+        onToggle={toggleOverlayYear}
+      />
+
       <section className="grid gap-3 sm:grid-cols-3">
         <StatTile label={`Patienten (${selectedYear})`} value={patientsInYear} />
         <StatTile label={`Beatmungstage ${selectedYear}`} value={totalVentilationDays(yearRecords)} accent />
         <StatTile label={`Therapiestunden ${selectedYear}`} value={`${totalTherapyHours(yearRecords)} h`} />
       </section>
 
-      {/* Beatmungstage je Monat — Jahresvergleich (nicht kumuliert) */}
-      <section className="rounded-md border border-line bg-surface p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-ink">
-              Beatmungstage je Monat — Jahresvergleich
-            </h2>
-            <p className="mt-1 text-sm text-ink-muted">
-              Absolute Monatswerte {selectedYear}
-              {overlayYears.length > 0 && ` im Vergleich mit ${overlayYears.join(', ')}`}
-              {projection.isProjected && ' und Prognose für die Restmonate'}
-            </p>
-          </div>
-          {isCurrentYear && projection.isProjected && (
-            <ProjectionToggle value={model} onChange={setModel} infoText={infoText} />
-          )}
-        </div>
-
-        {projection.isProjected && (
-          <p className="mt-3 text-sm text-ink-muted">
-            Jahresend-Prognose:{' '}
-            <span className="font-semibold text-primary">
-              {Math.round(projection.yearEnd)} Beatmungstage
-            </span>
-            <span
-              className="ml-2 text-xs"
-              title="Verlässlichkeitshinweis, kein statistisches Konfidenzintervall. Steigt mit der Zahl der vorliegenden Monate; das saisonale Modell wiegt höher als die lineare Hochrechnung."
-            >
-              Konfidenz {Math.round(projection.confidence * 100)} %
-            </span>
-          </p>
-        )}
-
-        {projection.insufficientData && (
-          <p className="mt-3 rounded-sm border border-line bg-bg px-3 py-2 text-sm text-ink-muted">
-            Noch keine Jahresprognose — dafür braucht es mindestens{' '}
-            {MIN_MONTHS_FOR_PROJECTION} Monate Datenbasis. Angezeigt werden die bisherigen
-            Ist-Werte.
-          </p>
-        )}
-
-        <div className="mt-4 h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
-              <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                axisLine={{ stroke: 'var(--ui-line)' }}
-                tickLine={false}
-              />
-              <YAxis
-                allowDecimals={false}
-                width={52}
-                tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                label={{
-                  value: 'Beatmungstage',
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { fill: 'var(--ui-ink-muted)', fontSize: 11, textAnchor: 'middle' },
-                }}
-              />
-              <Tooltip cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.06 }} content={<MonthlyTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
-
-              {/* Vorjahre: dezente Linien im Hintergrund */}
-              {overlayYears.map((year, i) => (
-                <Line
-                  key={year}
-                  name={String(year)}
-                  dataKey={String(year)}
-                  stroke="var(--ui-ink-muted)"
-                  strokeWidth={1.5}
-                  strokeOpacity={0.7 - i * 0.2}
-                  strokeDasharray={i === 0 ? undefined : '4 3'}
-                  dot={false}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              ))}
-
-              {/* Gewähltes Jahr: prägnante Balken (Ist) */}
-              <Bar
-                name={`${selectedYear} (Ist)`}
-                dataKey={String(selectedYear)}
-                fill="var(--ui-primary)"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={28}
-                isAnimationActive={false}
-              />
-
-              {/* Prognose für Restmonate: gestrichelte Linie in der Hauptfarbe.
-                  Nur, wenn tatsächlich hochgerechnet wird (genug Datenbasis UND
-                  bereits Ist-Beatmungen) — sonst weder Linie noch Legende. */}
-              {projection.isProjected && (
-                <Line
-                  name="Prognose"
-                  dataKey={`${selectedYear}${FORECAST_SUFFIX}`}
-                  stroke="var(--ui-primary)"
-                  strokeWidth={2}
-                  strokeDasharray="5 4"
-                  dot={{ r: 2, fill: 'var(--ui-primary)' }}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
+      {/* Jahresvergleichs-Charts je Therapieart (Beatmung, CRRT, ILA/ECMO) */}
+      {perTypeData.map(({ meta, weights, projection, monthlyData, hasData }) => (
+        <TherapyYearComparisonChart
+          key={meta.type}
+          title={`${meta.label} je Monat — Jahresvergleich`}
+          yAxisLabel={`${meta.short}-Tage`}
+          selectedYear={selectedYear}
+          overlayYears={overlayYears}
+          monthlyData={monthlyData}
+          hasData={hasData}
+          emptyHint={`Keine ${meta.label}-Daten für ${selectedYear}.`}
+          isCurrentYear={isCurrentYear}
+          projection={projection}
+          model={model}
+          onModelChange={setModel}
+          infoText={buildInfoText(model, weights, meta.type)}
+        />
+      ))}
 
       {/* Verteilung der Therapiearten (gewähltes Jahr) */}
       <section className="rounded-md border border-line bg-surface p-5">
@@ -301,36 +255,6 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
       <div className="mt-0.5 text-ink-muted">
         {days} aktive Tage · {hours} h
       </div>
-    </div>
-  )
-}
-
-interface MonthlyTooltipEntry {
-  name: string
-  value: number | null
-  color: string
-}
-function MonthlyTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: MonthlyTooltipEntry[]
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  const visible = payload.filter((p) => p.value !== null && p.value !== undefined)
-  if (!visible.length) return null
-  return (
-    <div className="rounded-sm border border-line bg-surface px-3 py-2 text-xs shadow">
-      <div className="font-medium text-ink">{label}</div>
-      {visible.map((p) => (
-        <div key={p.name} className="mt-0.5 flex items-center gap-1.5 text-ink-muted">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
-          {p.name}: {p.value}
-        </div>
-      ))}
     </div>
   )
 }

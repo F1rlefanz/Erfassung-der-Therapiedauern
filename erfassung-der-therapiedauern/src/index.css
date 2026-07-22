@@ -17,6 +17,14 @@
   --ui-primary: #e2001a;       /* BrandRed  — CTAs, aktive Stunden */
   --ui-on-primary: #ffffff;    /* Text/Icon auf Primär */
   --ui-shift: #2d2a28;         /* Schichtmarker (6/13/21 Uhr) */
+
+  /* Kategoriale Palette für Vergleichsjahre in Charts — bewusst klar von
+     --ui-primary (aktuelles Jahr) abgesetzt, zusätzlich per Linienstil
+     unterscheidbar (siehe lib/chartColors.ts) für Farbfehlsichtige. */
+  --ui-chart-1: #2f6fed;       /* Blau */
+  --ui-chart-2: #0f9d78;       /* Teal/Grün */
+  --ui-chart-3: #d98a13;       /* Amber/Ocker */
+  --ui-chart-4: #7c4dff;       /* Violett */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +37,12 @@
     --ui-primary: #ff6b7e;     /* BrandRedLightMode — aufgehellt für Kontrast */
     --ui-on-primary: #5c0016;
     --ui-shift: #c7c0ba;
+
+    /* Aufgehellte Varianten für ausreichenden Kontrast auf dunklem Grund. */
+    --ui-chart-1: #6ea8ff;
+    --ui-chart-2: #3ddc9a;
+    --ui-chart-3: #ffb84d;
+    --ui-chart-4: #b39bff;
   }
 }
 

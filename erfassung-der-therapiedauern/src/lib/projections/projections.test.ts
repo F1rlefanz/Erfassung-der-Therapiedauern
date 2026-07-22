@@ -85,10 +85,10 @@ describe('Saison-Gewichte', () => {
 
   it('lernt die Verteilung aus Vorjahren (Summe der Gewichte = 1)', () => {
     const history: MonthlyAggregate[] = [
-      { year: 2025, month: 1, ventilationDays: 20 }, // Winter stark
-      { year: 2025, month: 7, ventilationDays: 5 }, // Sommer schwach
-      { year: 2024, month: 1, ventilationDays: 20 },
-      { year: 2024, month: 7, ventilationDays: 5 },
+      { year: 2025, month: 1, therapyType: 'beatmung', days: 20 }, // Winter stark
+      { year: 2025, month: 7, therapyType: 'beatmung', days: 5 }, // Sommer schwach
+      { year: 2024, month: 1, therapyType: 'beatmung', days: 20 },
+      { year: 2024, month: 7, therapyType: 'beatmung', days: 5 },
     ]
     const result = computeSeasonalWeights(history, 2026)
     expect(result.source).toBe('historical')
@@ -102,9 +102,18 @@ describe('Saison-Gewichte', () => {
 
   it('ignoriert das laufende Jahr beim Lernen', () => {
     const history: MonthlyAggregate[] = [
-      { year: 2026, month: 1, ventilationDays: 999 }, // laufendes Jahr -> ignoriert
+      { year: 2026, month: 1, therapyType: 'beatmung', days: 999 }, // laufendes Jahr -> ignoriert
     ]
     const result = computeSeasonalWeights(history, 2026)
     expect(result.source).toBe('fallback')
+  })
+
+  it('filtert nach Therapieart und nutzt bei CRRT/ILA-ECMO den neutralen Fallback', () => {
+    const history: MonthlyAggregate[] = [
+      { year: 2025, month: 1, therapyType: 'beatmung', days: 20 }, // andere Art -> ignoriert für CRRT
+    ]
+    const result = computeSeasonalWeights(history, 2026, 'crrt')
+    expect(result.source).toBe('fallback')
+    expect(result.weights.every((w) => Math.abs(w - 1 / 12) < 1e-9)).toBe(true)
   })
 })

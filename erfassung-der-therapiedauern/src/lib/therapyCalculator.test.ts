@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { TherapyRecord, TherapyType } from '../types'
 import {
+  hasDataForType,
   isVentilationDay,
   therapyHours,
   therapyTypeDistribution,
@@ -83,5 +84,15 @@ describe('Aggregationen', () => {
     expect(beatmung.hours).toBe(2 + 1 + 1) // 07-16:2, 07-17:1, 06-30:1
     expect(crrt.days).toBe(1)
     expect(crrt.hours).toBe(3)
+  })
+
+  it('hasDataForType erkennt vorhandene bzw. fehlende Daten je Art', () => {
+    expect(hasDataForType(records, 'beatmung')).toBe(true)
+    expect(hasDataForType(records, 'crrt')).toBe(true)
+    expect(hasDataForType(records, 'ila_ecmo')).toBe(false) // keine Records dieser Art
+  })
+
+  it('hasDataForType ignoriert Records ohne markierte Stunde', () => {
+    expect(hasDataForType([rec('beatmung', [], '2026-07-18')], 'beatmung')).toBe(false)
   })
 })

@@ -36,9 +36,9 @@ app.get('/health', (_req, res) => {
   })
 })
 
-// Kompakte Monatsaggregate (Beatmungstage/Monat/Jahr) für die Prognose-Engine.
-app.get('/aggregates/monthly-ventilation', (_req, res) => {
-  res.json(db.getMonthlyVentilationAggregates())
+// Kompakte Monatsaggregate (aktive Tage/Monat/Jahr/Therapieart) für die Prognose-Engine.
+app.get('/aggregates/monthly-therapy', (_req, res) => {
+  res.json(db.getMonthlyTherapyAggregates())
 })
 
 // ---- Frontend statisch ausliefern (falls gebaut) ------------------------
@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
     patients: db.getAllPatients(),
     records: db.getAllRecords(),
   })
-  socket.emit('aggregates:monthly-ventilation', db.getMonthlyVentilationAggregates())
+  socket.emit('aggregates:monthly-therapy', db.getMonthlyTherapyAggregates())
   socket.emit('sync:severity_stats', db.getAllSeverityStats())
   socket.emit('sync:open_therapies', db.getAllOpenTherapies())
 
