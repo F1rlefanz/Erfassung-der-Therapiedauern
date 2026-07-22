@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import DashboardPage from './pages/DashboardPage'
 import ErfassungPage from './pages/ErfassungPage'
@@ -12,6 +12,11 @@ import { nowHourStamp, useTherapyStore } from './store/therapyStore'
 const AnalysenPage = lazy(() => import('./pages/AnalysenPage'))
 
 function App() {
+  const { pathname } = useLocation()
+  // Reporting (große ICU-Tabelle) darf breiter sein als der Standard-Content —
+  // alle anderen Seiten bleiben bei max-w-5xl (keine generelle Verbreiterung).
+  const contentMaxWidth = pathname === '/reporting' ? 'max-w-7xl' : 'max-w-5xl'
+
   // Verbindung zum lokalen On-Premise-Server aufbauen (Socket.io) und beim
   // Unmount wieder trennen. Ohne laufenden Server bleibt die App voll
   // funktionsfähig (offline-first) und synchronisiert beim Reconnect.
@@ -31,7 +36,7 @@ function App() {
     <div className="flex min-h-svh flex-col bg-bg sm:flex-row">
       <Sidebar />
       <main className="flex flex-1 flex-col px-5 py-6 sm:px-8">
-        <div className="mx-auto w-full max-w-5xl flex-1">
+        <div className={`mx-auto w-full ${contentMaxWidth} flex-1`}>
           <Suspense
             fallback={<p className="text-sm text-ink-muted">Wird geladen…</p>}
           >

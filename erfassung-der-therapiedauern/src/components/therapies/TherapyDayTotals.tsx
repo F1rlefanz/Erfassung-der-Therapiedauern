@@ -16,6 +16,9 @@ import { therapyHours } from '../../lib/therapyCalculator'
 function TherapyDayTotals() {
   const records = useEffectiveRecords()
   const selectedDate = useTherapyStore((s) => s.selectedDate)
+  const patients = useTherapyStore((s) => s.patients)
+
+  if (patients.length === 0) return null
 
   const hours: Record<TherapyType, number> = { beatmung: 0, crrt: 0, ila_ecmo: 0 }
   const patientsByType: Record<TherapyType, Set<string>> = {
@@ -37,7 +40,7 @@ function TherapyDayTotals() {
   const grandTotal = hours.beatmung + hours.crrt + hours.ila_ecmo
 
   return (
-    <div className="mt-5 border-t border-line pt-3">
+    <div className="rounded-md border border-line bg-surface p-4">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
         Fallzahl &amp; Gesamtzeit aller Patienten (Tag)
       </h3>

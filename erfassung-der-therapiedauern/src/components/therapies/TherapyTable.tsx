@@ -109,6 +109,8 @@ function TherapyTable() {
         </p>
       )}
 
+      <TherapyDayTotals />
+
       {patients.length === 0 ? (
         <div className="rounded-md border border-line bg-surface p-8 text-center text-sm text-ink-muted">
           Noch keine Patienten erfasst. Lege oben einen Patienten an, um Therapiestunden zu erfassen.
@@ -132,7 +134,6 @@ function TherapyTable() {
               </section>
             ))}
           </div>
-          <TherapyDayTotals />
         </div>
       )}
 
