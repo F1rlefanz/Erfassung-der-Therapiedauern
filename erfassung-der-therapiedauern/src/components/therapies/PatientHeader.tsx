@@ -55,7 +55,7 @@ function PatientHeader({ patient }: { patient: Patient }) {
   if (confirmDelete) {
     return (
       <div
-        className="rounded-sm border border-error/40 bg-error/5 p-3"
+        className="sticky left-0 z-10 rounded-sm border border-error/40 bg-error/5 p-3"
         role="alertdialog"
         aria-label={`Patient ${patient.name} löschen`}
       >
@@ -90,7 +90,7 @@ function PatientHeader({ patient }: { patient: Patient }) {
 
   if (!isEditing) {
     return (
-      <header className="flex items-baseline gap-2">
+      <header className="sticky left-0 z-10 flex items-baseline gap-2 bg-surface">
         <h3 className="text-base font-semibold text-ink">{patient.name}</h3>
         <span className="text-xs text-ink-muted">Fall {patient.caseNumber}</span>
         <button
@@ -116,7 +116,7 @@ function PatientHeader({ patient }: { patient: Patient }) {
   }
 
   return (
-    <form onSubmit={save} className="space-y-2">
+    <form onSubmit={save} className="sticky left-0 z-10 w-fit space-y-2 bg-surface">
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs text-ink-muted">
           Fallnummer

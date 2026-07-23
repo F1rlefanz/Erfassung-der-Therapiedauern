@@ -77,9 +77,12 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
     if (ok) discardTherapy(patientId, therapyType)
   }
 
+  // w-max: ohne das bliebe dieser Block-Flex-Container nur so breit wie sein
+  // Elternelement — sticky könnte sich dann nur innerhalb dieser (zu
+  // schmalen) Box bewegen statt über die volle gescrollte Breite.
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-28 shrink-0 pr-1">
+    <div className="flex w-max items-center gap-3">
+      <div className="sticky left-0 z-10 w-28 shrink-0 bg-surface pr-1">
         <span className="text-sm font-medium text-ink">{label}</span>
       </div>
       <div className="flex" role="group" aria-label={`${label}: Stunden 0 bis 23`}>
@@ -137,8 +140,10 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
         )}
       </div>
 
-      {/* Löschen: Tag zurücksetzen bzw. Therapie ganz entfernen. */}
-      <div className="flex w-14 shrink-0 gap-1">
+      {/* Löschen: Tag zurücksetzen bzw. Therapie ganz entfernen. Sticky, damit
+          diese Aktionen unabhängig von der Scroll-Position im 24h-Raster
+          erreichbar bleiben (sonst muss man bis ganz nach rechts scrollen). */}
+      <div className="sticky right-0 z-10 flex w-14 shrink-0 gap-1 bg-surface pl-1">
         <button
           type="button"
           onClick={() => clearTherapyDay(patientId, therapyType)}

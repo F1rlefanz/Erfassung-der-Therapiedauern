@@ -5,6 +5,18 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.18.1] - 2026-07-23 — Lösch-Buttons in der Erfassung immer erreichbar
+
+### Fixed
+- **Zeilen-Label und Lösch-Buttons (⌫/✕) scrollten mit dem 24h-Raster mit**
+  und waren bei nach rechts gescrollter Ansicht nur nach weiterem Scrollen
+  erreichbar. Ursache: Die Zeile war ein Block-Flex-Container und blieb
+  dadurch nur so breit wie ihr Elternelement — `sticky` konnte sich nur
+  innerhalb dieser zu schmalen Box bewegen, nicht über die volle gescrollte
+  Breite. Label (links) und Löschen-Buttons (rechts) bleiben jetzt
+  unabhängig von der Scroll-Position sichtbar; ebenso die Patienten-Kopfzeile
+  (Name/Fallnummer/Bearbeiten/Löschen).
+
 ## [0.18.0] - 2026-07-23 — Demo-Reset in den Einstellungen
 
 ### Added
