@@ -5,6 +5,15 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.18.2] - 2026-07-23 — Leerraum vor den Lösch-Buttons entfernt
+
+### Fixed
+- **Großer Leerraum zwischen „Läuft"/„Beenden" und den Lösch-Buttons** in der
+  Erfassungstabelle: Der Läuft-Steuerung-Container hatte eine feste Breite
+  (`w-28`), die nur beim längeren „Beenden ✕"-Zustand ausgefüllt wurde — bei
+  „Läuft" allein blieb viel ungenutzter Platz stehen. Container sitzt jetzt
+  direkt am Inhalt, die Lösch-Buttons folgen ohne Lücke.
+
 ## [0.18.1] - 2026-07-23 — Lösch-Buttons in der Erfassung immer erreichbar
 
 ### Fixed

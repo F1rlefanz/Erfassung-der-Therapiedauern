@@ -105,8 +105,10 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
         {activeCount}
       </div>
 
-      {/* Läuft-Steuerung: Start merken bzw. laufende Therapie beenden. */}
-      <div className="flex w-28 shrink-0 items-center gap-1.5">
+      {/* Läuft-Steuerung: Start merken bzw. laufende Therapie beenden. Keine
+          feste Breite — sonst bleibt bei „Läuft" (kurz) viel Leerraum vor den
+          Lösch-Buttons stehen, den „Beenden ✕ ●" (länger) nicht hätte. */}
+      <div className="flex shrink-0 items-center gap-1.5">
         {open ? (
           <>
             <button
