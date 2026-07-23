@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { HOURS_PER_DAY, useTherapyStore } from '../../store/therapyStore'
 import { THERAPY_TYPES } from '../../lib/therapyTypes'
+import { formatDateDE } from '../../lib/date'
 import TherapyRow from './TherapyRow'
 import TherapyDayTotals from './TherapyDayTotals'
 import PatientHeader from './PatientHeader'
@@ -64,12 +65,18 @@ function TherapyTable() {
       <div className="flex flex-wrap items-end gap-4 rounded-md border border-line bg-surface p-4">
         <label className="flex flex-col gap-1 text-sm text-ink-muted">
           Datum
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-sm border border-line bg-bg px-2 py-1 text-ink"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rounded-sm border border-line bg-bg px-2 py-1 text-ink"
+            />
+            {/* Das Anzeigeformat von input[type=date] folgt der Browser-/OS-Locale
+                und lässt sich nicht per lang-Attribut erzwingen — deshalb hier
+                zusätzlich fest auf dd.mm.jjjj formatiert. */}
+            <span className="tabular-nums text-ink">{formatDateDE(selectedDate)}</span>
+          </div>
         </label>
 
         <form onSubmit={handleAddPatient} className="flex flex-wrap items-end gap-2">

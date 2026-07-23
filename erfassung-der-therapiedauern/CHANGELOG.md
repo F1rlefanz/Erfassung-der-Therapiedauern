@@ -5,6 +5,18 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.17.1] - 2026-07-23 — Datumsauswahl in der Erfassung korrigiert
+
+### Fixed
+- **Erfassung startete nicht mehr zuverlässig auf „heute"**: Ein vor v0.16
+  mitpersistiertes `selectedDate` konnte aus älteren IndexedDB-Beständen das
+  aktuelle Datum beim Öffnen überschreiben. Das Datum wird beim Laden jetzt
+  immer frisch gesetzt, unabhängig davon, was zuvor gespeichert war.
+- **Datumsanzeige jetzt fest auf dd.mm.jjjj**: Das Anzeigeformat des nativen
+  Datumsfelds folgt der Browser-/OS-Locale und war damit nicht auf allen
+  Arbeitsplätzen garantiert deutsch. Neben dem Feld steht das Datum nun
+  zusätzlich fest formatiert.
+
 ## [0.17.0] - 2026-07-22 — Jahresvergleich für alle Therapiearten, UI-ToDos
 
 ### Added

@@ -453,3 +453,12 @@ describe('Backup & Restore', () => {
     expect(s().openTherapies).toHaveLength(0)
   })
 })
+
+describe('Rehydrierung', () => {
+  it('ignoriert ein aus IndexedDB mitgeschlepptes altes selectedDate (vor v0.16 mitpersistiert)', () => {
+    const merge = useTherapyStore.persist.getOptions().merge!
+    const persistedFromOldIdb = { selectedDate: '2024-01-01', patients: [] }
+    const merged = merge(persistedFromOldIdb, useTherapyStore.getState())
+    expect(merged.selectedDate).toBe(useTherapyStore.getState().selectedDate)
+  })
+})

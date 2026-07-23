@@ -761,6 +761,16 @@ export const useTherapyStore = create<TherapyState>()(
         deletedPatientIds: state.deletedPatientIds,
         deletedRecordIds: state.deletedRecordIds,
       }),
+      // Vor v0.16 wurde selectedDate mitpersistiert (siehe partialize oben).
+      // Bestehende IndexedDB-Einträge tragen dieses Feld ggf. noch — der
+      // Default-Merge von zustand/persist ({...current, ...persisted}) würde
+      // es sonst über das frische todayISO() legen. Deshalb bleibt selectedDate
+      // beim Rehydrieren IMMER der aktuelle (frische) Wert.
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<TherapyState>),
+        selectedDate: current.selectedDate,
+      }),
       // v1 → v2: Patienten und Schweregrad-Kennzahlen bekamen ein `lastUpdatedAt`.
       // Alte Einträge ohne das Feld werden auf EPOCH gesetzt (siehe dort).
       migrate: (persisted, fromVersion) => {
