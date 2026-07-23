@@ -73,6 +73,37 @@ describe('Patienten & Records', () => {
     expect(getHours(s(), pid, 'beatmung')[8]).toBe(true)
   })
 
+  it('entlässt einen Patienten (active: false), ohne seine Records zu löschen', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+
+    s().dischargePatient(pid)
+
+    expect(s().patients.find((p) => p.id === pid)).toMatchObject({ active: false })
+    expect(getHours(s(), pid, 'beatmung')[8]).toBe(true) // Historie unangetastet
+  })
+
+  it('reaktiviert bei erneuter Eingabe derselben Fallnummer denselben (entlassenen) Patienten', () => {
+    const pid = addPatient()
+    s().toggleHour(pid, 'beatmung', 8)
+    s().dischargePatient(pid)
+
+    const result = s().addPatient('Mustermann, Max', '100234')
+
+    expect(result.ok).toBe(true)
+    expect(result.ok && result.patient.id).toBe(pid) // dieselbe id, keine Dublette
+    expect(s().patients).toHaveLength(1)
+    expect(s().patients[0].active).toBe(true)
+    expect(getHours(s(), pid, 'beatmung')[8]).toBe(true) // Historie bleibt erhalten
+  })
+
+  it('lehnt eine Fallnummer weiterhin ab, wenn der bestehende Patient noch aktiv ist', () => {
+    addPatient()
+    const result = s().addPatient('Musterfrau, Erika', '100234')
+    expect(result.ok).toBe(false)
+    expect(s().patients).toHaveLength(1)
+  })
+
   it('lehnt beim Bearbeiten eine fremde, bereits vergebene Fallnummer ab', () => {
     const first = addPatient()
     s().addPatient('Musterfrau, Erika', '100235')

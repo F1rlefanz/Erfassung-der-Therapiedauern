@@ -14,6 +14,7 @@ import { therapyHours } from '../../lib/therapyCalculator'
 function PatientHeader({ patient }: { patient: Patient }) {
   const updatePatient = useTherapyStore((s) => s.updatePatient)
   const deletePatient = useTherapyStore((s) => s.deletePatient)
+  const dischargePatient = useTherapyStore((s) => s.dischargePatient)
   const records = useTherapyStore((s) => s.therapyRecords)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -39,6 +40,15 @@ function PatientHeader({ patient }: { patient: Patient }) {
   function cancelEdit() {
     setIsEditing(false)
     setError(null)
+  }
+
+  function handleDischarge() {
+    const ok = window.confirm(
+      `${patient.name} (Fall ${patient.caseNumber}) entlassen?\n\n` +
+        'Verschwindet aus der Erfassungsliste. Erfasste Stunden bleiben in Statistik/Reporting ' +
+        'erhalten. Bei Wiederaufnahme einfach dieselbe Fallnummer erneut eingeben.',
+    )
+    if (ok) dischargePatient(patient.id)
   }
 
   function save(e: React.FormEvent) {
@@ -101,6 +111,15 @@ function PatientHeader({ patient }: { patient: Patient }) {
           className="rounded-xs px-1 text-xs text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           ✎
+        </button>
+        <button
+          type="button"
+          onClick={handleDischarge}
+          title="Patient entlassen (verschwindet aus der Erfassungsliste, Historie bleibt erhalten)"
+          aria-label={`Patient ${patient.name} entlassen`}
+          className="rounded-xs px-1 text-xs text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Entlassen
         </button>
         <button
           type="button"

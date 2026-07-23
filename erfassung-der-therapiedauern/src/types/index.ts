@@ -12,6 +12,14 @@ export interface Patient {
   caseNumber: string
   name: string
   /**
+   * Ob der Patient aktuell in Behandlung ist. `undefined` (ältere, vor diesem
+   * Feld gespeicherte Patienten) zählt als aktiv — deshalb überall als
+   * `active !== false` prüfen, nie `active === true`. Ein entlassener Patient
+   * verschwindet aus der täglichen Erfassungsliste, seine Historie
+   * (Records/Statistik) bleibt unverändert erhalten.
+   */
+  active?: boolean
+  /**
    * Zeitpunkt der letzten Änderung (ISO-8601). Grundlage des Sync-Merge: ein
    * älteres Echo darf einen neueren Stand nicht überschreiben.
    */

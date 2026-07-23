@@ -158,8 +158,10 @@ function validatePatientInput(
 
   // Regel: Eine Fallnummer identifiziert genau einen Patienten. Zwei Einträge
   // mit derselben Nummer würden in allen Statistiken als zwei Fälle zählen.
+  // Ausnahme: Ein ENTLASSENER Patient mit dieser Nummer ist kein Duplikat,
+  // sondern eine Wiederaufnahme — das behandelt addPatient() gesondert.
   const duplicate = findPatientByCaseNumber(patients, trimmedCase)
-  if (duplicate && duplicate.id !== excludeId) {
+  if (duplicate && duplicate.id !== excludeId && duplicate.active !== false) {
     return { ok: false, error: `Fallnummer ${trimmedCase} ist bereits vergeben (${duplicate.name}).` }
   }
 
@@ -264,6 +266,13 @@ interface TherapyState {
    * erfasste Therapiezeiten bleiben also erhalten.
    */
   updatePatient: (id: string, name: string, caseNumber: string) => PatientMutationResult
+  /**
+   * Markiert einen Patienten als entlassen — verschwindet aus der täglichen
+   * Erfassungsliste, Historie (Records/Statistik) bleibt unverändert. Dieselbe
+   * Fallnummer erneut bei „Patient hinzufügen" eingeben reaktiviert ihn
+   * (siehe addPatient).
+   */
+  dischargePatient: (patientId: string) => void
   toggleHour: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   startPaint: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
   paintOver: (patientId: string, therapyType: TherapyType, hourIndex: number) => void
@@ -353,15 +362,40 @@ export const useTherapyStore = create<TherapyState>()(
         const valid = validatePatientInput(get().patients, name, caseNumber)
         if (!valid.ok) return valid
 
+        // Dieselbe Fallnummer wie ein entlassener Patient: keine Neuanlage,
+        // sondern Wiederaufnahme (Reintubation o.ä.) — Historie bleibt an
+        // derselben Patienten-id hängen.
+        const discharged = findPatientByCaseNumber(get().patients, valid.caseNumber)
+        if (discharged) {
+          const patient: Patient = {
+            ...discharged,
+            name: valid.name,
+            active: true,
+            lastUpdatedAt: new Date().toISOString(),
+          }
+          set((state) => ({ patients: upsertById(state.patients, patient) }))
+          pushPatientUpsert(patient)
+          return { ok: true, patient }
+        }
+
         const patient: Patient = {
           id: newId(),
           name: valid.name,
           caseNumber: valid.caseNumber,
+          active: true,
           lastUpdatedAt: new Date().toISOString(),
         }
         set((state) => ({ patients: [...state.patients, patient] }))
         pushPatientUpsert(patient) // No-op, wenn Server offline
         return { ok: true, patient }
+      },
+
+      dischargePatient: (patientId) => {
+        const existing = get().patients.find((p) => p.id === patientId)
+        if (!existing) return
+        const patient: Patient = { ...existing, active: false, lastUpdatedAt: new Date().toISOString() }
+        set((state) => ({ patients: upsertById(state.patients, patient) }))
+        pushPatientUpsert(patient)
       },
 
       updatePatient: (id, name, caseNumber) => {

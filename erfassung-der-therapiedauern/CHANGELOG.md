@@ -5,6 +5,21 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.19.0] - 2026-07-23 — Patienten entlassen (gegen Karteileichen)
+
+### Added
+- **„Entlassen"-Button** in der Patienten-Kopfzeile: Der Patient verschwindet
+  aus der täglichen Erfassungsliste, seine erfasste Historie bleibt in
+  Statistik/Reporting/Dashboard unverändert erhalten (kein Datenverlust,
+  keine neue Ansicht nötig).
+- **Wiederaufnahme durch erneute Eingabe**: Wird beim „Patient hinzufügen"
+  dieselbe Fallnummer wie bei einem entlassenen Patienten eingetragen, wird
+  derselbe Patient (inkl. Historie) reaktiviert, statt einen neuen Datensatz
+  anzulegen oder einen Duplikat-Fehler zu zeigen. Ist die Fallnummer noch bei
+  einem aktiven Patienten in Verwendung, bleibt es wie bisher ein Fehler.
+- Server-DB (`patients`-Tabelle) kennt jetzt ebenfalls den `active`-Status,
+  damit der Entlassen-Status Server-Neustarts und Mehrgeräte-Sync übersteht.
+
 ## [0.18.2] - 2026-07-23 — Leerraum vor den Lösch-Buttons entfernt
 
 ### Fixed

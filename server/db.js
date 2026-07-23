@@ -20,6 +20,7 @@ db.exec(`
     id              TEXT PRIMARY KEY,
     case_number     TEXT NOT NULL,
     name            TEXT NOT NULL,
+    active          INTEGER NOT NULL DEFAULT 1,
     last_updated_at TEXT NOT NULL DEFAULT '',
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -70,6 +71,7 @@ function ensureColumn(table, column, definition) {
   }
 }
 ensureColumn('patients', 'last_updated_at', "last_updated_at TEXT NOT NULL DEFAULT ''")
+ensureColumn('patients', 'active', 'active INTEGER NOT NULL DEFAULT 1')
 ensureColumn('severity_stats', 'last_updated_at', "last_updated_at TEXT NOT NULL DEFAULT ''")
 
 // ---- Mapper: DB-Row <-> Wire-Modell (camelCase, wie im Client) ----
@@ -79,6 +81,7 @@ function rowToPatient(row) {
     id: row.id,
     caseNumber: row.case_number,
     name: row.name,
+    active: row.active !== 0,
     lastUpdatedAt: row.last_updated_at,
   }
 }
@@ -100,11 +103,12 @@ const stmtAllPatients = db.prepare('SELECT * FROM patients ORDER BY created_at A
 const stmtAllRecords = db.prepare('SELECT * FROM therapy_records')
 
 const stmtUpsertPatient = db.prepare(`
-  INSERT INTO patients (id, case_number, name, last_updated_at)
-  VALUES (@id, @caseNumber, @name, @lastUpdatedAt)
+  INSERT INTO patients (id, case_number, name, active, last_updated_at)
+  VALUES (@id, @caseNumber, @name, @active, @lastUpdatedAt)
   ON CONFLICT(id) DO UPDATE SET
     case_number     = excluded.case_number,
     name            = excluded.name,
+    active          = excluded.active,
     last_updated_at = excluded.last_updated_at
   WHERE excluded.last_updated_at > patients.last_updated_at
 `)
@@ -136,6 +140,9 @@ function upsertPatient(patient) {
     id: patient.id,
     caseNumber: patient.caseNumber,
     name: patient.name,
+    // undefined (älterer Client ohne das Feld) zählt als aktiv — siehe Patient
+    // in src/types/index.ts.
+    active: patient.active === false ? 0 : 1,
     // Fehlender Zeitstempel (Alt-Client) → '' (ganz alt), damit er neuere Daten
     // nicht überschreibt; ein Erstinsert erfolgt trotzdem.
     lastUpdatedAt: patient.lastUpdatedAt || '',

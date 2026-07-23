@@ -28,7 +28,9 @@ const SHIFTS = [
 function TherapyTable() {
   const selectedDate = useTherapyStore((s) => s.selectedDate)
   const setSelectedDate = useTherapyStore((s) => s.setSelectedDate)
-  const patients = useTherapyStore((s) => s.patients)
+  // Entlassene Patienten (active: false) verschwinden aus der Tagesansicht,
+  // bleiben aber im Store und damit in Statistik/Reporting erhalten.
+  const patients = useTherapyStore((s) => s.patients).filter((p) => p.active !== false)
   const addPatient = useTherapyStore((s) => s.addPatient)
   const endPaint = useTherapyStore((s) => s.endPaint)
 
