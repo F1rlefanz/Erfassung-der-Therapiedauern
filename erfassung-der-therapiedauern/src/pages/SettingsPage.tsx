@@ -1,4 +1,5 @@
 import BackupRestore from '../components/settings/BackupRestore'
+import DemoReset from '../components/settings/DemoReset'
 import SyncStatusBadge from '../components/layout/SyncStatusBadge'
 
 function SettingsPage() {
@@ -22,6 +23,7 @@ function SettingsPage() {
       </section>
 
       <BackupRestore />
+      <DemoReset />
     </div>
   )
 }

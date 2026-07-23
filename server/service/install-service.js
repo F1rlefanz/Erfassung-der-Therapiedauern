@@ -17,6 +17,10 @@ const { Service } = require('node-windows')
 
 // Nur gesetzte Variablen an den Dienst weiterreichen (sonst greifen die
 // Defaults aus index.js/db.js).
+// DEMO_MODE ist ABSICHTLICH nicht dabei: Der Demo-Reset-Button (Einstellungen)
+// darf auf einer als Dienst installierten (produktiven) Instanz strukturell
+// nie verfügbar sein, selbst wenn beim Aufruf von "service:install" versehentlich
+// DEMO_MODE=true in der Shell gesetzt war.
 const passthrough = ['PORT', 'DB_PATH', 'BACKUP_DIR', 'BACKUP_KEEP', 'LOG_DIR', 'FRONTEND_DIST']
 const env = passthrough
   .filter((name) => process.env[name] !== undefined)

@@ -15,7 +15,7 @@ import type { OpenTherapy } from './episodes/types'
  * entstandene Änderungen synchronisiert werden.
  */
 
-const SERVER_URL =
+export const SERVER_URL =
   (import.meta.env.VITE_SYNC_SERVER_URL as string | undefined) ?? 'http://localhost:3001'
 
 export type SyncStatus = 'connecting' | 'online' | 'offline'
@@ -50,6 +50,12 @@ export interface SyncHandlers {
   getLocalSnapshot: () => LocalSnapshot
   /** Wird nach erfolgreichem Reconnect-Push aufgerufen: Grabsteine sind zugestellt. */
   onTombstonesFlushed: () => void
+  /**
+   * Server hat einen Demo-Reset durchgeführt (nur möglich, wenn der Server mit
+   * DEMO_MODE läuft). Broadcast an ALLE verbundenen Clients gleichzeitig, damit
+   * kein Client seinen alten lokalen Bestand beim nächsten Reconnect zurückschreibt.
+   */
+  onDemoReset: () => void
 }
 
 let socket: Socket | null = null
@@ -87,6 +93,7 @@ export function initSync(handlers: SyncHandlers): () => void {
   s.on('sync:open_therapies', handlers.onOpenTherapyInit)
   s.on('open_therapy:upsert', handlers.onOpenTherapyUpsert)
   s.on('open_therapy:delete', handlers.onOpenTherapyDelete)
+  s.on('demo:reset', handlers.onDemoReset)
 
   return () => {
     s.disconnect()

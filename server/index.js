@@ -22,6 +22,12 @@ const v = require('./validate')
 
 const PORT = process.env.PORT || 3001
 
+// Demo-Reset-Endpoint: nur aktiv, wenn explizit per Env-Var eingeschaltet.
+// Bewusst NICHT in server/service/install-service.js's Passthrough-Liste —
+// eine als Windows-Dienst installierte (produktive) Instanz kann diesen Modus
+// dadurch strukturell nie erben, selbst bei einem Konfigurationsfehler.
+const DEMO_MODE = process.env.DEMO_MODE === 'true'
+
 const app = express()
 app.use(cors())
 
@@ -39,6 +45,23 @@ app.get('/health', (_req, res) => {
 // Kompakte Monatsaggregate (aktive Tage/Monat/Jahr/Therapieart) für die Prognose-Engine.
 app.get('/aggregates/monthly-therapy', (_req, res) => {
   res.json(db.getMonthlyTherapyAggregates())
+})
+
+// Demo-Reset: Sichtbarkeit für die Einstellungen-Seite (Button nur bei DEMO_MODE zeigen).
+app.get('/demo-mode', (_req, res) => {
+  res.json({ enabled: DEMO_MODE })
+})
+
+// Leert die komplette DB und benachrichtigt alle verbundenen Clients, damit
+// niemand seinen alten lokalen Bestand beim nächsten Reconnect zurückschreibt.
+// 404 statt 403 bei deaktiviertem DEMO_MODE — der Endpoint soll auf einer
+// produktiven Instanz nach außen nicht einmal als existent erkennbar sein.
+app.post('/demo-reset', (_req, res) => {
+  if (!DEMO_MODE) return res.status(404).end()
+  db.clearAll()
+  io.emit('demo:reset')
+  log.info('[server] Demo-Reset ausgeführt — DB geleert, alle Clients benachrichtigt.')
+  res.json({ ok: true })
 })
 
 // ---- Frontend statisch ausliefern (falls gebaut) ------------------------

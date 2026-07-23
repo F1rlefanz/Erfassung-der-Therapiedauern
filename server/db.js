@@ -292,7 +292,9 @@ function deleteOpenTherapy(id) {
 
 /** Leert die Tabellen (für den deterministischen Seeder / Clean Slate). */
 function clearAll() {
-  db.exec('DELETE FROM therapy_records; DELETE FROM open_therapies; DELETE FROM patients;')
+  db.exec(
+    'DELETE FROM therapy_records; DELETE FROM open_therapies; DELETE FROM severity_stats; DELETE FROM patients;',
+  )
 }
 
 /** Führt `work` in einer einzigen Transaktion aus (schnelles Bulk-Insert). */

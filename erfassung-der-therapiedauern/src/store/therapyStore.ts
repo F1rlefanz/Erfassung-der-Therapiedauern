@@ -538,6 +538,11 @@ export const useTherapyStore = create<TherapyState>()(
           onOpenTherapyUpsert: (open) => get().mergeRemoteOpenTherapy(open),
           onOpenTherapyDelete: (id) => get().mergeRemoteOpenTherapyDelete(id),
           onTombstonesFlushed: () => get().clearTombstones(),
+          onDemoReset: () =>
+            get().importSnapshot(
+              { version: STORE_VERSION, exportedAt: new Date().toISOString(), patients: [], therapyRecords: [] },
+              'replace',
+            ),
           getLocalSnapshot: () => ({
             patients: get().patients,
             records: get().therapyRecords,

@@ -5,6 +5,22 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.18.0] - 2026-07-23 — Demo-Reset in den Einstellungen
+
+### Added
+- **Demo-Reset** (Einstellungen): Leert Server-DB und alle gerade verbundenen
+  Clients gleichzeitig (Server-Backup läuft vorher automatisch mit). Nur
+  sichtbar/aktiv, wenn der Server explizit mit `DEMO_MODE=true` gestartet
+  wurde — eine als Windows-Dienst installierte (produktive) Instanz zeigt
+  diesen Button nie, da `DEMO_MODE` bewusst nicht in die Dienst-Installation
+  durchgereicht wird. Schützt zusätzlich per Tipp-Bestätigung („RESET"
+  eingeben) vor versehentlichem Klick.
+
+### Fixed
+- **`clearAll()` leerte Schweregrad-Kennzahlen nicht mit** — betraf bisher nur
+  den Seed-Reset (`npm run db:seed`), ist jetzt für den neuen Demo-Reset
+  korrekt vollständig.
+
 ## [0.17.1] - 2026-07-23 — Datumsauswahl in der Erfassung korrigiert
 
 ### Fixed
