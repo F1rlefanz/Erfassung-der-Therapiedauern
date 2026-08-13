@@ -6,9 +6,6 @@ import TherapyRow from './TherapyRow'
 import TherapyDayTotals from './TherapyDayTotals'
 import PatientHeader from './PatientHeader'
 
-/** Breite einer Stundenzelle in rem (deckungsgleich mit `w-7` = 1.75rem). */
-const CELL_REM = 1.75
-
 /** Stunden, an denen eine neue Schicht beginnt (Früh / Spät / Nacht). */
 const SHIFT_START_HOURS = new Set([6, 13, 21])
 
@@ -130,7 +127,11 @@ function TherapyTable() {
           <HourRuler />
           <div className="mt-2 space-y-5">
             {patients.map((patient) => (
-              <section key={patient.id} className="space-y-1.5">
+              // w-max wie in TherapyRow: Die Patienten-Kopfzeile klebt per
+              // `sticky left-0` — ihr umgebender Block muss dafür die volle
+              // gescrollte Breite haben, sonst wandert sie beim Scrollen nach
+              // rechts mit aus dem Bild (Name/Fallnummer nicht mehr sichtbar).
+              <section key={patient.id} className="w-max space-y-1.5">
                 <PatientHeader patient={patient} />
                 {THERAPY_TYPES.map((meta) => (
                   <TherapyRow
@@ -169,9 +170,9 @@ function ShiftHeader() {
         {SHIFTS.map((shift, i) => (
           <div
             key={i}
-            style={{ width: `${shift.hours * CELL_REM}rem` }}
+            style={{ width: `calc(var(--cell-size) * ${shift.hours})` }}
             className={[
-              'text-center text-[11px] uppercase tracking-wide text-ink-muted',
+              'text-center text-2xs uppercase tracking-wide text-ink-muted',
               SHIFT_START_HOURS.has(shift.startHour) ? 'border-l-2 border-l-shift' : '',
             ].join(' ')}
           >
@@ -196,8 +197,9 @@ function HourRuler() {
         {Array.from({ length: HOURS_PER_DAY }, (_, hourIndex) => (
           <div
             key={hourIndex}
+            style={{ width: 'var(--cell-size)' }}
             className={[
-              'w-7 shrink-0 text-center text-[10px] tabular-nums text-ink-muted',
+              'shrink-0 text-center text-3xs tabular-nums text-ink-muted',
               SHIFT_START_HOURS.has(hourIndex) ? 'border-l-2 border-l-shift' : '',
             ].join(' ')}
           >
@@ -205,7 +207,7 @@ function HourRuler() {
           </div>
         ))}
       </div>
-      <div className="w-12 shrink-0 text-center text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="w-12 shrink-0 text-center text-3xs uppercase tracking-wide text-ink-muted">
         Gesamt
       </div>
     </div>

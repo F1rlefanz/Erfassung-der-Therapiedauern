@@ -15,6 +15,7 @@ import TherapyStatsTable from '../components/analysen/TherapyStatsTable'
 import { availableYears, buildMonthlyComparison, buildYearProjection } from '../lib/statistics'
 import { formatDateDE, todayISO } from '../lib/date'
 import StatTile from '../components/StatTile'
+import { useUiScale } from '../lib/useUiScale'
 import YearSelector from '../components/YearSelector'
 import YearOverlaySelector from '../components/analysen/YearOverlaySelector'
 import TherapyYearComparisonChart from '../components/analysen/TherapyYearComparisonChart'
@@ -36,6 +37,10 @@ function buildInfoText(model: ProjectionModel, weights: SeasonalWeights, therapy
 function AnalysenPage() {
   const records = useEffectiveRecords()
   const monthlyHistory = useTherapyStore((s) => s.monthlyHistory)
+
+  // recharts rechnet in nackten px und würde sonst nicht mitwachsen.
+  const scale = useUiScale()
+  const px = (n: number) => Math.round(n * scale)
 
   const today = todayISO()
   const currentYear = Number(today.slice(0, 4))
@@ -168,28 +173,35 @@ function AnalysenPage() {
           Aktive Tage (mit mindestens einer Stunde) je Therapieart · {selectedYear}
         </p>
 
+        {/* min-w-0 + overflow-hidden am Diagramm-Kasten: recharts'
+            ResponsiveContainer misst seine Breite selbst und liegt beim
+            Umschalten der Fenstergröße kurzzeitig zu hoch. Ohne Klemme schiebt
+            das Diagramm dann die ganze Seite auf. */}
         {hasDistributionData ? (
-          <div className="mt-4 h-72 w-full">
+          <div className="mt-4 h-72 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={distributionData} margin={{ top: 16, right: 8, bottom: 0, left: 4 }}>
+              <BarChart
+                data={distributionData}
+                margin={{ top: px(16), right: px(8), bottom: 0, left: px(4) }}
+              >
                 <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
+                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: px(12) }}
                   axisLine={{ stroke: 'var(--ui-line)' }}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  width={52}
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
+                  width={px(52)}
+                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: px(12) }}
                   axisLine={false}
                   tickLine={false}
                   label={{
                     value: 'Aktive Tage',
                     angle: -90,
                     position: 'insideLeft',
-                    style: { fill: 'var(--ui-ink-muted)', fontSize: 11, textAnchor: 'middle' },
+                    style: { fill: 'var(--ui-ink-muted)', fontSize: px(11), textAnchor: 'middle' },
                   }}
                 />
                 <Tooltip
@@ -200,10 +212,10 @@ function AnalysenPage() {
                   dataKey="days"
                   fill="var(--ui-primary)"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={72}
+                  maxBarSize={px(72)}
                   isAnimationActive={false}
                 >
-                  <LabelList dataKey="days" position="top" fill="var(--ui-ink)" fontSize={12} />
+                  <LabelList dataKey="days" position="top" fill="var(--ui-ink)" fontSize={px(12)} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

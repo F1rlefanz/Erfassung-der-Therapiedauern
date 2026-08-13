@@ -15,7 +15,7 @@ function SeverityInput({ value, onChange, ariaLabel }: SeverityInputProps) {
     <span className="relative inline-flex items-center">
       <span
         aria-hidden
-        className="pointer-events-none absolute left-1.5 text-[10px] leading-none text-primary/70"
+        className="pointer-events-none absolute left-1.5 text-3xs leading-none text-primary/70"
       >
         ✎
       </span>

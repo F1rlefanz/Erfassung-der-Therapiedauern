@@ -56,8 +56,11 @@ function HourCell({ hourIndex, isActive, onPaintStart, onPaintEnter, onToggle }:
       onKeyDown={handleKeyDown}
       aria-pressed={isActive}
       title={`${String(hourIndex).padStart(2, '0')}:00`}
+      // Größe aus `--cell-size` (index.css) statt fester Utility-Klasse — damit
+      // Zelle, Stundenlineal und Schichtband garantiert dieselbe Breite haben.
+      style={{ width: 'var(--cell-size)', height: 'var(--cell-size)' }}
       className={[
-        'h-7 w-7 shrink-0 touch-none select-none border border-line transition-colors',
+        'shrink-0 touch-none select-none border border-line transition-colors',
         'hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
         isActive ? 'bg-primary' : 'bg-surface',
         isShiftStart ? 'border-l-2 border-l-shift' : '',

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
+import { contentWidthClass } from './components/layout/navItems'
 import DashboardPage from './pages/DashboardPage'
 import ErfassungPage from './pages/ErfassungPage'
 import ReportingPage from './pages/ReportingPage'
@@ -13,9 +14,10 @@ const AnalysenPage = lazy(() => import('./pages/AnalysenPage'))
 
 function App() {
   const { pathname } = useLocation()
-  // Reporting (große ICU-Tabelle) darf breiter sein als der Standard-Content —
-  // alle anderen Seiten bleiben bei max-w-5xl (keine generelle Verbreiterung).
-  const contentMaxWidth = pathname === '/reporting' ? 'max-w-7xl' : 'max-w-5xl'
+  // Contentbreite kommt aus der Nav-Konfiguration (pro Route deklariert), damit
+  // hier keine Sonderfälle je Seite stehen. Footer nutzt bewusst dieselbe
+  // Breite — sonst steht er gegen den Inhalt versetzt.
+  const contentMaxWidth = contentWidthClass(pathname)
 
   // Verbindung zum lokalen On-Premise-Server aufbauen (Socket.io) und beim
   // Unmount wieder trennen. Ohne laufenden Server bleibt die App voll
@@ -35,8 +37,13 @@ function App() {
   return (
     <div className="flex min-h-svh flex-col bg-bg sm:flex-row">
       <Sidebar />
-      <main className="flex flex-1 flex-col px-5 py-6 sm:px-8">
-        <div className={`mx-auto w-full ${contentMaxWidth} flex-1`}>
+      {/* min-w-0: Flex-Kinder haben von Haus aus `min-width: auto` und können
+          deshalb nicht unter ihre Inhaltsbreite schrumpfen. Ohne das schiebt ein
+          breites 24h-Raster die GESAMTE Seite auf (horizontale Scrollleiste am
+          Fenster), statt in seinem eigenen `overflow-x-auto`-Container zu
+          scrollen — Sidebar und Kopfzeile wandern dann mit aus dem Bild. */}
+      <main className="flex min-w-0 flex-1 flex-col px-5 py-6 sm:px-8">
+        <div className={`mx-auto w-full min-w-0 ${contentMaxWidth} flex-1`}>
           <Suspense
             fallback={<p className="text-sm text-ink-muted">Wird geladen…</p>}
           >
@@ -50,7 +57,9 @@ function App() {
             </Routes>
           </Suspense>
         </div>
-        <footer className="mx-auto mt-10 w-full max-w-5xl border-t border-line pt-4 text-xs text-ink-muted">
+        <footer
+          className={`mx-auto mt-10 w-full ${contentMaxWidth} border-t border-line pt-4 text-xs text-ink-muted`}
+        >
           © 2026 Erfassung der Therapiedauern · Christoph Fischer
         </footer>
       </main>

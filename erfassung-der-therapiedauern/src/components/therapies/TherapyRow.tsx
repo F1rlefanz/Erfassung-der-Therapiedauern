@@ -104,7 +104,8 @@ function TherapyRow({ patientId, therapyType, label, shortLabel }: TherapyRowPro
       </div>
       {/* Gesamtzeit dieser Zeile — nicht interaktiv, optisch abgesetzt. */}
       <div
-        className="flex h-7 w-12 shrink-0 items-center justify-center rounded-sm border border-line bg-bg text-sm font-bold tabular-nums text-ink"
+        style={{ height: 'var(--cell-size)' }}
+        className="flex w-12 shrink-0 items-center justify-center rounded-sm border border-line bg-bg text-sm font-bold tabular-nums text-ink"
         title="Gesamtzeit (Stunden)"
       >
         {activeCount}
@@ -211,7 +212,7 @@ function RunningBadge({ open, nowStamp }: { open: OpenTherapy; nowStamp: string 
   return (
     <span
       className={[
-        'inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold',
+        'inline-flex h-4 w-4 items-center justify-center rounded-full text-3xs font-bold',
         isReview ? 'bg-error text-white' : 'bg-brand-light text-brand-dark',
       ].join(' ')}
       title={tip}

@@ -20,7 +20,7 @@ function StatTile({ label, value, hint, accent }: StatTileProps) {
         {value}
       </div>
       <div className="mt-1 text-xs text-ink-muted">{label}</div>
-      {hint && <div className="mt-0.5 text-[11px] text-ink-muted">{hint}</div>}
+      {hint && <div className="mt-0.5 text-2xs text-ink-muted">{hint}</div>}
     </div>
   )
 }

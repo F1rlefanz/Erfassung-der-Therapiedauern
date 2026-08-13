@@ -41,7 +41,7 @@ function SeverityTh({ col, last }: { col: SeverityColumn; last: boolean }) {
       <span className="inline-flex items-center gap-1">
         {col.header}
         {col.kind === 'manual' && (
-          <span aria-hidden className="text-[10px] leading-none text-primary/70" title="Manuell zu erfassen">
+          <span aria-hidden className="text-3xs leading-none text-primary/70" title="Manuell zu erfassen">
             ✎
           </span>
         )}
