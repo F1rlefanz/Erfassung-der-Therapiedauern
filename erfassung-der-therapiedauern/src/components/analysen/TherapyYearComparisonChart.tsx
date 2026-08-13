@@ -13,6 +13,7 @@ import type { ProjectionModel } from '../../lib/projections/types'
 import { MIN_MONTHS_FOR_PROJECTION } from '../../lib/projections/projections'
 import { FORECAST_SUFFIX, type MonthlyComparisonPoint, type YearProjection } from '../../lib/statistics'
 import { overlayYearColor } from '../../lib/chartColors'
+import { useUiScale } from '../../lib/useUiScale'
 import ProjectionToggle from './ProjectionToggle'
 
 interface TherapyYearComparisonChartProps {
@@ -35,7 +36,7 @@ interface TherapyYearComparisonChartProps {
 /**
  * Jahresvergleichs-Chart einer Therapieart (Monatswerte + optionale
  * Jahresend-Prognose). Parametrisierte Komponente — wird für jede Therapieart
- * (Beatmung, CRRT, ILA/ECMO) mit eigenen Daten wiederverwendet.
+ * (Beatmung, Nierenersatzverfahren, iLA/ECMO) mit eigenen Daten wiederverwendet.
  */
 function TherapyYearComparisonChart({
   title,
@@ -51,6 +52,11 @@ function TherapyYearComparisonChart({
   onModelChange,
   infoText,
 }: TherapyYearComparisonChartProps) {
+  // recharts rechnet in nackten px — ohne diesen Faktor bliebe das Diagramm auf
+  // dem Wandmonitor mit 12px-Achsen unlesbar, während der Rest mitwächst.
+  const scale = useUiScale()
+  const px = (n: number) => Math.round(n * scale)
+
   return (
     <section className="rounded-md border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -98,31 +104,36 @@ function TherapyYearComparisonChart({
             </p>
           )}
 
-          <div className="mt-4 h-72 w-full">
+          {/* min-w-0 + overflow-hidden: hält das selbstvermessende recharts-
+              Diagramm in seinem Kasten (siehe AnalysenPage). */}
+          <div className="mt-4 h-72 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
+              <ComposedChart
+                data={monthlyData}
+                margin={{ top: px(8), right: px(12), bottom: 0, left: px(4) }}
+              >
                 <CartesianGrid stroke="var(--ui-line)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
+                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: px(12) }}
                   axisLine={{ stroke: 'var(--ui-line)' }}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  width={52}
-                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: 12 }}
+                  width={px(52)}
+                  tick={{ fill: 'var(--ui-ink-muted)', fontSize: px(12) }}
                   axisLine={false}
                   tickLine={false}
                   label={{
                     value: yAxisLabel,
                     angle: -90,
                     position: 'insideLeft',
-                    style: { fill: 'var(--ui-ink-muted)', fontSize: 11, textAnchor: 'middle' },
+                    style: { fill: 'var(--ui-ink-muted)', fontSize: px(11), textAnchor: 'middle' },
                   }}
                 />
                 <Tooltip cursor={{ fill: 'var(--ui-primary)', fillOpacity: 0.06 }} content={<MonthlyTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ui-ink-muted)' }} />
+                <Legend wrapperStyle={{ fontSize: px(12), color: 'var(--ui-ink-muted)' }} />
 
                 {/* Vergleichsjahre: eigene Farbe + Strichmuster je Jahr. */}
                 {overlayYears.map((year, i) => {
@@ -133,7 +144,7 @@ function TherapyYearComparisonChart({
                       name={String(year)}
                       dataKey={String(year)}
                       stroke={color.stroke}
-                      strokeWidth={1.75}
+                      strokeWidth={1.75 * scale}
                       strokeDasharray={color.dash}
                       dot={false}
                       isAnimationActive={false}
@@ -148,7 +159,7 @@ function TherapyYearComparisonChart({
                   dataKey={String(selectedYear)}
                   fill="var(--ui-primary)"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={28}
+                  maxBarSize={px(28)}
                   isAnimationActive={false}
                 />
 
@@ -160,9 +171,9 @@ function TherapyYearComparisonChart({
                     name="Prognose"
                     dataKey={`${selectedYear}${FORECAST_SUFFIX}`}
                     stroke="var(--ui-primary)"
-                    strokeWidth={2}
+                    strokeWidth={2 * scale}
                     strokeDasharray="5 4"
-                    dot={{ r: 2, fill: 'var(--ui-primary)' }}
+                    dot={{ r: 2 * scale, fill: 'var(--ui-primary)' }}
                     isAnimationActive={false}
                     connectNulls
                   />

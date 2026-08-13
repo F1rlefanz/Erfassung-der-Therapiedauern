@@ -62,7 +62,7 @@ describe('buildEpisodeRows', () => {
       NOW,
     )
     expect(rows).toHaveLength(2)
-    const crrt = rows.find((r) => r.therapyLabel === 'CRRT')!
+    const crrt = rows.find((r) => r.therapyLabel === 'Nierenersatzverfahren')!
     expect(crrt.name).toBe('Musterfrau, Erika')
     expect(crrt.caseNumber).toBe('100235')
   })

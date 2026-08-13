@@ -50,7 +50,9 @@ describe('buildCsv', () => {
     const csv = buildCsv(rows)
     const lines = csv.split('\r\n')
 
-    expect(lines[0]).toBe('Patient;Fallnummer;Beatmungstage;Therapiestunden;davon CRRT (h);davon iLA/ECMO (h)')
+    expect(lines[0]).toBe(
+      'Patient;Fallnummer;Beatmungstage;Therapiestunden;davon Nierenersatzverfahren (h);davon iLA/ECMO (h)',
+    )
     expect(lines[1]).toBe('Patient 1;900001;1;18;8;0')
     expect(lines[2]).toBe('Summe;;1;18;8;0')
   })

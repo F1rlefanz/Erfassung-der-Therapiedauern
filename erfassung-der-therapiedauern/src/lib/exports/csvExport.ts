@@ -1,6 +1,7 @@
 import type { PatientYearRow } from './reportRows'
 import { sumPatientYearRows } from './reportRows'
 import type { EpisodeRow } from './episodeRows'
+import { therapyLabel } from '../therapyTypes'
 
 /** Trennzeichen für deutsche Excel-Kompatibilität. */
 const SEPARATOR = ';'
@@ -8,13 +9,15 @@ const SEPARATOR = ';'
 /** UTF-8-Byte-Order-Mark, damit deutsches Excel Umlaute korrekt liest. */
 const UTF8_BOM = String.fromCharCode(0xfeff)
 
+// Die beiden „davon"-Spalten beziehen ihre Beschriftung aus der zentralen
+// Therapiearten-Liste, damit sie bei einer Umbenennung nicht zurückbleiben.
 const HEADERS = [
   'Patient',
   'Fallnummer',
   'Beatmungstage',
   'Therapiestunden',
-  'davon CRRT (h)',
-  'davon iLA/ECMO (h)',
+  `davon ${therapyLabel('crrt')} (h)`,
+  `davon ${therapyLabel('ila_ecmo')} (h)`,
 ]
 
 /** Escaped ein CSV-Feld (Anführungszeichen bei Sonderzeichen). */

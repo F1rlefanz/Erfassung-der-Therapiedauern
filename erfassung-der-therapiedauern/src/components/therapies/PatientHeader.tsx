@@ -100,7 +100,11 @@ function PatientHeader({ patient }: { patient: Patient }) {
 
   if (!isEditing) {
     return (
-      <header className="sticky left-0 z-10 flex items-baseline gap-2 bg-surface">
+      // w-max: Ein sticky-Element kann sich nur innerhalb seines umgebenden
+      // Blocks verschieben. Ohne w-max füllt die Kopfzeile als Block-Element die
+      // volle Zeilenbreite aus, hat damit keinen Weg zum Kleben und scrollt
+      // einfach mit hinaus.
+      <header className="sticky left-0 z-10 flex w-max items-baseline gap-2 bg-surface pr-2">
         <h3 className="text-base font-semibold text-ink">{patient.name}</h3>
         <span className="text-xs text-ink-muted">Fall {patient.caseNumber}</span>
         <button

@@ -5,6 +5,60 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.20.0] - 2026-08-13 — Oberfläche wächst mit dem Bildschirm
+
+### Added
+- **Die gesamte Oberfläche skaliert jetzt mit der Bildschirmbreite.** Auf dem
+  großen Stationsmonitor werden Schrift, Stundenzellen, Kacheln und Diagramme
+  proportional größer — gedacht für den Wandmonitor, der aus einigen Metern
+  Entfernung gelesen wird. Es wird also nicht mehr Inhalt nebeneinander
+  gequetscht, sondern derselbe Inhalt größer dargestellt.
+  - HD-Laptop (1366 px) und alles darunter: **unverändert** wie bisher.
+  - 1920 px: rund 14 % größer. 4K (3840 px): rund 60 % größer.
+  - Eine im Browser eingestellte größere Standardschrift wirkt weiterhin.
+- **Seiten dürfen unterschiedlich breit sein**, passend zum Inhalt: Reporting
+  nutzt die volle Breite, Erfassung und Analysen sind deutlich breiter als
+  zuvor, Dashboard und Einstellungen bleiben angenehm schmal. Bisher war alles
+  außer Reporting auf eine feste Breite genagelt.
+
+### Fixed
+- **Breite Inhalte schoben die ganze Seite auf**, statt in ihrem eigenen Bereich
+  zu scrollen — die Seitenleiste wanderte dabei mit aus dem Bild. Große Tabellen
+  und das 24h-Raster scrollen jetzt sauber für sich allein.
+- **Der Patientenname blieb beim Scrollen im 24h-Raster nicht stehen**, obwohl
+  Zeilen-Labels und Lösch-Buttons das taten (Rest aus 0.18.1). Name und
+  Fallnummer bleiben jetzt ebenfalls dauerhaft sichtbar.
+- **Die Fußzeile stand auf der Reporting-Seite versetzt zum Inhalt**, weil sie
+  eine eigene, fest verdrahtete Breite hatte.
+- Diagramme konnten sich beim Ändern der Fenstergröße kurzzeitig breiter machen
+  als ihr Kasten und dabei das Seitenlayout verschieben.
+
+### Unverändert
+- **Ausdrucke (MDK/Controlling) bleiben exakt wie bisher** — das A4-Layout ist
+  bewusst von der Bildschirmskalierung ausgenommen, damit ein Ausdruck nicht je
+  nach Monitor anders aussieht.
+
+## [0.19.1] - 2026-08-13 — Korrekte Bezeichnungen der Therapiearten
+
+### Changed
+- **„CRRT" heißt jetzt „Nierenersatzverfahren"** und **„ILA / ECMO" heißt
+  „iLA/ECMO"** — überall in der Oberfläche, im CSV-Export und in den
+  Erläuterungstexten. Bisher standen mehrere Schreibweisen nebeneinander
+  (`ILA / ECMO`, `ILA/ECMO`, `iLA/ECMO`, `ECMO`); das ist jetzt vereinheitlicht.
+  In der schmalen Label-Spalte der Erfassung steht die Kurzform
+  („Nierenersatz"), die Langform erscheint als Tooltip.
+- Die Beschriftungen werden an allen Stellen aus der zentralen Therapiearten-
+  Liste gezogen, statt einzeln im Code zu stehen — künftige Umbenennungen
+  passieren dadurch wirklich nur noch an einer Stelle.
+- **Hinweis für den Export:** Die CSV-Kopfzeile heißt jetzt
+  `davon Nierenersatzverfahren (h)` statt `davon CRRT (h)`.
+
+### Fachlich unverändert
+- Es handelt sich um dieselben drei Therapiearten wie bisher; erfasste Daten,
+  Auswertungen und Prognosen sind davon nicht berührt. Intern behalten die
+  Therapiearten ihre bisherigen, dauerhaft stabilen Kennungen — sie stecken in
+  Datenbank, Datensatz-Schlüsseln und bestehenden Backups.
+
 ## [0.19.0] - 2026-07-23 — Patienten entlassen (gegen Karteileichen)
 
 ### Added

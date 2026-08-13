@@ -1,5 +1,22 @@
 import type { ReactNode } from 'react'
 
+/**
+ * Wie viel Breite eine Seite bekommen darf. Bewusst semantisch statt als
+ * Tailwind-Klasse notiert, damit die Entscheidung „welche Seite wie breit"
+ * hier bei der Route steht und nicht als Sonderfall im Layout.
+ *
+ * Die Werte sind rem-basiert und wachsen damit über die fluide Wurzelschrift
+ * (siehe `index.css`) auf großen Monitoren automatisch mit.
+ */
+export type ContentWidth = 'standard' | 'wide' | 'full'
+
+/** Seitenbreite → Tailwind-Klasse. Einzige Stelle, die das übersetzt. */
+export const CONTENT_WIDTH_CLASS: Record<ContentWidth, string> = {
+  standard: 'max-w-6xl', // 72rem — Formulare, Übersichten
+  wide: 'max-w-[96rem]', // Erfassungsraster, Diagramme
+  full: 'max-w-none', // große ICU-Tabelle: nimmt, was da ist
+}
+
 /** Ein Eintrag der Hauptnavigation, geteilt von Sidebar und Dashboard. */
 export interface NavItem {
   to: string
@@ -7,7 +24,18 @@ export interface NavItem {
   description: string
   /** true = nur bei exakter Pfad-Übereinstimmung aktiv (für die Index-Route). */
   end?: boolean
+  /** Contentbreite dieser Seite (Default: `standard`). */
+  width?: ContentWidth
   icon: ReactNode
+}
+
+/**
+ * Contentbreite zu einem Pfad. Unbekannte Pfade (404-Redirect) bekommen die
+ * Standardbreite.
+ */
+export function contentWidthClass(pathname: string): string {
+  const item = NAV_ITEMS.find((n) => n.to === pathname)
+  return CONTENT_WIDTH_CLASS[item?.width ?? 'standard']
 }
 
 const svg = {
@@ -40,6 +68,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/erfassung',
     label: 'Erfassung',
     description: 'Therapiestunden pro Patient erfassen',
+    width: 'wide',
     icon: (
       <svg {...svg} aria-hidden="true">
         <circle cx="12" cy="12" r="9" />
@@ -51,6 +80,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/reporting',
     label: 'Reporting & Controlling',
     description: 'Schweregradstatistik & MDK-Export',
+    width: 'full',
     icon: (
       // lucide: table
       <svg {...svg} aria-hidden="true">
@@ -65,6 +95,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/analysen',
     label: 'Analysen & Graphen',
     description: 'Monatswerte, Jahresvergleich & Prognosen',
+    width: 'wide',
     icon: (
       // lucide: bar-chart-3
       <svg {...svg} aria-hidden="true">

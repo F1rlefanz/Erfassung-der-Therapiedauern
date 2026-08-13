@@ -87,14 +87,14 @@ export const ICU_COLUMNS: readonly SeverityColumn[] = [
     header: 'Hämofilt.tage',
     title: 'Hämofiltrationstage',
     kind: 'computed',
-    rule: 'Tage mit mindestens einer markierten CRRT-Stunde (Nierenersatzverfahren).',
+    rule: 'Tage mit mindestens einer markierten Stunde Nierenersatzverfahren.',
   },
   {
     key: 'ecmoDays',
     header: 'ECMO-Tage',
     title: 'ECMO-Tage',
     kind: 'computed',
-    rule: 'Tage mit mindestens einer markierten ILA/ECMO-Stunde (extrakorporale Lungenunterstützung).',
+    rule: 'Tage mit mindestens einer markierten iLA/ECMO-Stunde (extrakorporale Lungenunterstützung).',
   },
   {
     key: 'tissPoints',

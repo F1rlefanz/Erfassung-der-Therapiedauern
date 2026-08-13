@@ -14,7 +14,10 @@ import HourCell from './HourCell'
 interface TherapyRowProps {
   patientId: string
   therapyType: TherapyType
+  /** Langform — für Dialoge, Tooltip und Screenreader. */
   label: string
+  /** Kurzform für die schmale Label-Spalte des 24h-Rasters. */
+  shortLabel: string
 }
 
 /**
@@ -23,7 +26,7 @@ interface TherapyRowProps {
  * dezenter Langzeit-Warnung. Abonniert gezielt nur das eigene Stunden-Array,
  * damit beim Malen ausschließlich die betroffene Zeile neu rendert.
  */
-function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
+function TherapyRow({ patientId, therapyType, label, shortLabel }: TherapyRowProps) {
   // Stabile Primitive einzeln selektieren (jeweils referenzstabil), das Overlay
   // erst in useMemo verbinden — sonst liefert der Store-Selektor bei laufender
   // Therapie in jedem Render ein neues Array (Endlosschleife).
@@ -83,7 +86,9 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
   return (
     <div className="flex w-max items-center gap-3">
       <div className="sticky left-0 z-10 w-28 shrink-0 bg-surface pr-1">
-        <span className="text-sm font-medium text-ink">{label}</span>
+        <span className="text-sm font-medium text-ink" title={label}>
+          {shortLabel}
+        </span>
       </div>
       <div className="flex" role="group" aria-label={`${label}: Stunden 0 bis 23`}>
         {Array.from({ length: HOURS_PER_DAY }, (_, hourIndex) => (
@@ -99,7 +104,8 @@ function TherapyRow({ patientId, therapyType, label }: TherapyRowProps) {
       </div>
       {/* Gesamtzeit dieser Zeile — nicht interaktiv, optisch abgesetzt. */}
       <div
-        className="flex h-7 w-12 shrink-0 items-center justify-center rounded-sm border border-line bg-bg text-sm font-bold tabular-nums text-ink"
+        style={{ height: 'var(--cell-size)' }}
+        className="flex w-12 shrink-0 items-center justify-center rounded-sm border border-line bg-bg text-sm font-bold tabular-nums text-ink"
         title="Gesamtzeit (Stunden)"
       >
         {activeCount}
@@ -206,7 +212,7 @@ function RunningBadge({ open, nowStamp }: { open: OpenTherapy; nowStamp: string 
   return (
     <span
       className={[
-        'inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold',
+        'inline-flex h-4 w-4 items-center justify-center rounded-full text-3xs font-bold',
         isReview ? 'bg-error text-white' : 'bg-brand-light text-brand-dark',
       ].join(' ')}
       title={tip}

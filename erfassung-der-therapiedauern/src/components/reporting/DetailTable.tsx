@@ -1,6 +1,7 @@
 import { buildPatientYearRows, sumPatientYearRows, type PatientYearRow } from '../../lib/exports/reportRows'
 import { buildEpisodeRows } from '../../lib/exports/episodeRows'
 import { downloadCsv, downloadEpisodeCsv } from '../../lib/exports/csvExport'
+import { therapyLabel } from '../../lib/therapyTypes'
 import { useTherapyStore } from '../../store/therapyStore'
 import type { Patient, TherapyRecord } from '../../types'
 
@@ -95,8 +96,8 @@ function DetailTable({ patients, records, year }: DetailTableProps) {
                 <th className="py-2 pr-3 font-medium">Fallnummer</th>
                 <th className="py-2 pr-3 text-right font-medium">Beatmungstage</th>
                 <th className="py-2 pr-3 text-right font-medium">Therapiestunden</th>
-                <th className="py-2 pr-3 text-right font-medium">davon CRRT (h)</th>
-                <th className="py-2 text-right font-medium">davon iLA/ECMO (h)</th>
+                <th className="py-2 pr-3 text-right font-medium">davon {therapyLabel('crrt')} (h)</th>
+                <th className="py-2 text-right font-medium">davon {therapyLabel('ila_ecmo')} (h)</th>
               </tr>
             </thead>
             <tbody>
