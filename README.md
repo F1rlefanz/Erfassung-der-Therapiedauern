@@ -1,7 +1,7 @@
 # Erfassung der Therapiedauern
 
 On-Premise-Anwendung zur **stundengenauen Erfassung von Therapiedauern** auf der
-Intensivstation (Beatmung, Nierenersatz/CRRT, ILA/ECMO) samt Auswertung
+Intensivstation (Beatmung, Nierenersatzverfahren, iLA/ECMO) samt Auswertung
 (Schweregradstatistik, MDK-Export, Prognosen). Läuft vollständig im eigenen
 Intranet — **keine Cloud**, klinische Daten bleiben lokal.
 

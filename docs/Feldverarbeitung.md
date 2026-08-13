@@ -8,13 +8,19 @@ Screenshots stammen genau aus diesem Szenario.
 
 Legende: 🖉 = **manuell** erfasst · ⚙ = **automatisch** berechnet.
 
+> **Hinweis zu den Screenshots:** Sie stammen aus der Zeit vor v0.19.1 und
+> zeigen die Therapiearten noch als „CRRT" und „ILA / ECMO". Gemeint sind
+> dieselben Therapiearten, die heute **Nierenersatzverfahren** und **iLA/ECMO**
+> heißen; der Text dieses Dokuments ist bereits auf die aktuellen Bezeichnungen
+> gebracht. Beim nächsten Neuaufnehmen der Screenshots entfällt dieser Hinweis.
+
 ---
 
 ## 1. Grundprinzip der Datenerfassung
 
 Die kleinste Einheit ist die **Stunde**. Für jeden **Patienten**, jeden
-**Kalendertag** und jede **Therapieart** (Beatmung, CRRT/Nierenersatz,
-ILA/ECMO) gibt es ein 24-Stunden-Raster (Stunde 0 bis 23). Jede Stunde ist
+**Kalendertag** und jede **Therapieart** (Beatmung, Nierenersatzverfahren,
+iLA/ECMO) gibt es ein 24-Stunden-Raster (Stunde 0 bis 23). Jede Stunde ist
 entweder markiert (Therapie lief) oder nicht.
 
 - Ein Datensatz = **ein Patient × ein Tag × eine Therapieart** mit seinen 24
@@ -51,8 +57,8 @@ Erfasste Therapien:
 | Anton | 28.06.2026 | Beatmung | 0–23 | 24 |
 | Anton | 03.07.2026 | Beatmung | 0–23 | 24 |
 | Berta | 10.07.2026 | Beatmung | 0–11 | 12 |
-| Berta | 10.07.2026 | CRRT | 0–23 | 24 |
-| Clara | 15.07.2026 | ILA/ECMO | 20–23 | 4 |
+| Berta | 10.07.2026 | Nierenersatzverfahren | 0–23 | 24 |
+| Clara | 15.07.2026 | iLA/ECMO | 20–23 | 4 |
 
 Manuelle Schweregrad-Eingaben (Juli 2026): ICU **Fälle 8 / TISS-28 400**,
 IMC **Fälle 5 / TISS-28 250**.
@@ -72,9 +78,9 @@ IMC **Fälle 5 / TISS-28 250**.
 | Fallnummer | 🖉 | Fachlicher Schlüssel; **eindeutig** — dieselbe Nummer kann nicht zweimal vergeben werden (Vergleich getrimmt, Groß/Kleinschreibung egal). | 100002 |
 | Name | 🖉 | Anzeigename des Patienten. | Beispiel, Berta |
 | Stundenzelle (0–23) | 🖉 | Klick/Wischen markiert bzw. löscht die Stunde. Rot = Therapie lief. | Berta Beatmung 0–11 |
-| **Gesamt** (je Zeile) | ⚙ | Anzahl markierter Stunden dieser Zeile. | Beatmung **12**, CRRT **24** |
+| **Gesamt** (je Zeile) | ⚙ | Anzahl markierter Stunden dieser Zeile. | Beatmung **12**, Nierenersatz **24** |
 | Tages-Summe „N Fälle" (je Art) | ⚙ | Anzahl **verschiedener Patienten** mit ≥1 Stunde dieser Art an dem Tag. | Beatmung **1 Fall** |
-| Tages-Summe „M h" (je Art) | ⚙ | Summe aller markierten Stunden dieser Art über alle Patienten des Tages. | CRRT **24 h** |
+| Tages-Summe „M h" (je Art) | ⚙ | Summe aller markierten Stunden dieser Art über alle Patienten des Tages. | Nierenersatz **24 h** |
 | Tages-Summe „Gesamt" | ⚙ | Distinkte Patienten des Tages · Summe aller Stunden aller Arten. | **1 Fall · 36 h** (12+24) |
 
 ---
@@ -96,7 +102,7 @@ keinen Schreibvorgang und kann daher auch bei Ausfällen keine Lücke hinterlass
 | **✕ Verwerfen** | 🖉 | Entfernt eine laufende Therapie **ohne** Stunden zu speichern — für einen versehentlichen „Läuft"-Klick. |
 | Lauf-Anzeige (Puls / ⓘ) | ⚙ | Dauer-Warnung: unter 14 Tagen ein ruhiger Punkt; **ab 14 Tagen** ⓘ „Langzeitbeatmung"; **ab 28 Tagen** ⓘ (rot) „Ende vergessen?". Schwellen an der klinischen Definition orientiert. Maus-Over nennt die Tage. |
 
-*Im Screenshot:* Anton CRRT läuft seit heute 9 Uhr (Puls, Gesamt 7); Clara
+*Im Screenshot:* Anton Nierenersatzverfahren läuft seit heute 9 Uhr (Puls, Gesamt 7); Clara
 Beatmung läuft seit 20 Tagen (ⓘ „Langzeitbeatmung ≥ 14 Tage").
 
 ---
@@ -113,7 +119,7 @@ Beatmung läuft seit 20 Tagen (ⓘ „Langzeitbeatmung ≥ 14 Tage").
 | Jahresend-Prognose | ⚙ | Hochrechnung der Beatmungstage aufs Jahresende (saisonal gewichtet). Erfolgt **erst ab 3 Monaten** Datenbasis — vorher wird nichts hochgerechnet, sondern nur der Ist-Stand gezeigt. | **5 Beatmungstage** |
 | Konfidenz | ⚙ | Verlässlichkeitshinweis (kein statistisches Konfidenzintervall): steigt mit der Zahl vorliegender Monate, gedeckelt bei 0,8, mal Modellfaktor. Im Juli: min(7/12; 0,8) × 0,8 = **47 %**. | 47 % |
 | Balken je Monat | ⚙ | Nicht-kumulierte Beatmungstage des Monats. | Jun **1**, Jul **2** |
-| Verteilung der Therapiearten | ⚙ | Aktive Tage (mit ≥1 Stunde) je Therapieart im Jahr. | Beatmung 3, CRRT 1, ILA/ECMO 1 |
+| Verteilung der Therapiearten | ⚙ | Aktive Tage (mit ≥1 Stunde) je Therapieart im Jahr. | Beatmung 3, Nierenersatz 1, iLA/ECMO 1 |
 
 ### Monatsstatistik je Therapieart
 
@@ -156,8 +162,8 @@ Zeile **Juli 2026** des Beispiels:
 | Fortgef. | ⚙ | Aus dem Vormonat fortgeführte Beatmungspatienten. | 1 (Anton) |
 | Anteil % | ⚙ | Beatmungspatienten ÷ Fälle × 100. | 12,5 (1÷8) |
 | Ø Beatmungsdauer | ⚙ | Beg. Beatmungstage ÷ Beatmungspatienten (neu). | 2,0 (2÷1) |
-| Hämofiltrationstage | ⚙ | Tage mit ≥1 CRRT-Stunde. | 1 |
-| ECMO-Tage | ⚙ | Tage mit ≥1 ILA/ECMO-Stunde. | 1 |
+| Hämofiltrationstage | ⚙ | Tage mit ≥1 Stunde Nierenersatzverfahren. | 1 |
+| ECMO-Tage | ⚙ | Tage mit ≥1 iLA/ECMO-Stunde. | 1 |
 | TISS-28-Punkte | 🖉 | Summe der TISS-28-Punkte des Monats. | **400** |
 | TISS-28 pro Fall | ⚙ | TISS-28 ÷ Fälle. | 50,0 (400÷8) |
 
@@ -179,7 +185,7 @@ Regeln (Screenshot IMC, unten sichtbar).
 ![Schweregradstatistik IMC + Legende](screenshots/06-schweregrad-imc.jpg)
 
 Die IMC-Station führt **nur manuelle** Kennzahlen (keine eigenen Beatmungs-/
-CRRT-/ECMO-Daten):
+Therapiedaten aus der Erfassung):
 
 | Feld | Herkunft | Verarbeitung | Juli |
 |---|---|---|---|
@@ -197,11 +203,11 @@ CRRT-/ECMO-Daten):
 |---|---|---|---|---|---|
 | Beatmungstage | ⚙ | (Patient, Tag) mit ≥1 Beatmungsstunde im Jahr. | 2 | 1 | 0 |
 | Therapiestunden | ⚙ | Summe **aller** markierten Stunden (alle Arten). | 48 | 36 | 4 |
-| davon CRRT (h) | ⚙ | Nur CRRT-Stunden. | 0 | 24 | 0 |
-| davon iLA/ECMO (h) | ⚙ | Nur ILA/ECMO-Stunden. | 0 | 0 | 4 |
+| davon Nierenersatzverfahren (h) | ⚙ | Nur Stunden Nierenersatzverfahren. | 0 | 24 | 0 |
+| davon iLA/ECMO (h) | ⚙ | Nur iLA/ECMO-Stunden. | 0 | 0 | 4 |
 
 **Summenzeile** (⚙, alle Zeilen aufsummiert): 3 Beatmungstage · 88 h · davon
-CRRT 24 h · davon ILA/ECMO 4 h.
+Nierenersatzverfahren 24 h · davon iLA/ECMO 4 h.
 
 Drei Ausgabewege:
 - **CSV (aggregiert)** — obige Tabelle je Patient.
@@ -211,8 +217,8 @@ Drei Ausgabewege:
   ```
   Fallnummer;Name;Therapieart;Beginn (Datum);Von;Ende (Datum);Bis;Stunden
   100001;Beispiel, Anton;Beatmung;2026-06-28;00:00;2026-06-28;23:59;24
-  100002;Beispiel, Berta;CRRT;2026-07-10;00:00;2026-07-10;23:59;24
-  100003;Beispiel, Clara;ILA / ECMO;2026-07-15;20:00;2026-07-15;23:59;4
+  100002;Beispiel, Berta;Nierenersatzverfahren;2026-07-10;00:00;2026-07-10;23:59;24
+  100003;Beispiel, Clara;iLA/ECMO;2026-07-15;20:00;2026-07-15;23:59;4
   ```
 - **Drucken / PDF** — druckt die aktuelle Ansicht (Sidebar/Steuerelemente
   ausgeblendet).
