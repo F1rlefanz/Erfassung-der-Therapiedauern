@@ -142,7 +142,7 @@ function AnalysenPage() {
         <StatTile label={`Therapiestunden ${selectedYear}`} value={`${totalTherapyHours(yearRecords)} h`} />
       </section>
 
-      {/* Jahresvergleichs-Charts je Therapieart (Beatmung, CRRT, ILA/ECMO) */}
+      {/* Jahresvergleichs-Charts je Therapieart (alle aus THERAPY_TYPES) */}
       {perTypeData.map(({ meta, weights, projection, monthlyData, hasData }) => (
         <TherapyYearComparisonChart
           key={meta.type}

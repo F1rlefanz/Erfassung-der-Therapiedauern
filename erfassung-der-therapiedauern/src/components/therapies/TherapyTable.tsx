@@ -138,6 +138,7 @@ function TherapyTable() {
                     patientId={patient.id}
                     therapyType={meta.type}
                     label={meta.label}
+                    shortLabel={meta.short}
                   />
                 ))}
               </section>

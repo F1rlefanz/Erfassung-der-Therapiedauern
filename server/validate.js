@@ -5,6 +5,12 @@
 // werden (auch wenn im vertrauten Intranet das Risiko gering ist). Ungültige
 // Payloads werden im Server verworfen und protokolliert, nicht persistiert.
 
+// Zweite, vom Client unabhängige Wertemenge (Client: src/lib/therapyTypes.ts).
+// Diese Strings sind interne IDs, KEINE Anzeigetexte — sie stecken zusätzlich in
+// den Primärschlüsseln (`patientId__date__therapyType`), in den SQLite-Spalten
+// und in bereits ausgelieferten JSON-Backups. Eine Umbenennung wäre deshalb eine
+// echte Datenmigration und müsste Client und Server gleichzeitig treffen;
+// Beschriftungen ändert man stattdessen nur im Client.
 const THERAPY_TYPES = new Set(['beatmung', 'crrt', 'ila_ecmo'])
 const UNITS = new Set(['ICU', 'IMC'])
 

@@ -35,7 +35,7 @@ interface TherapyYearComparisonChartProps {
 /**
  * Jahresvergleichs-Chart einer Therapieart (Monatswerte + optionale
  * Jahresend-Prognose). Parametrisierte Komponente — wird für jede Therapieart
- * (Beatmung, CRRT, ILA/ECMO) mit eigenen Daten wiederverwendet.
+ * (Beatmung, Nierenersatzverfahren, iLA/ECMO) mit eigenen Daten wiederverwendet.
  */
 function TherapyYearComparisonChart({
   title,

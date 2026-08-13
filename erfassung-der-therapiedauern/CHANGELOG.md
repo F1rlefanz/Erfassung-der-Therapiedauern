@@ -5,6 +5,27 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionierung an
 [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.19.1] - 2026-08-13 — Korrekte Bezeichnungen der Therapiearten
+
+### Changed
+- **„CRRT" heißt jetzt „Nierenersatzverfahren"** und **„ILA / ECMO" heißt
+  „iLA/ECMO"** — überall in der Oberfläche, im CSV-Export und in den
+  Erläuterungstexten. Bisher standen mehrere Schreibweisen nebeneinander
+  (`ILA / ECMO`, `ILA/ECMO`, `iLA/ECMO`, `ECMO`); das ist jetzt vereinheitlicht.
+  In der schmalen Label-Spalte der Erfassung steht die Kurzform
+  („Nierenersatz"), die Langform erscheint als Tooltip.
+- Die Beschriftungen werden an allen Stellen aus der zentralen Therapiearten-
+  Liste gezogen, statt einzeln im Code zu stehen — künftige Umbenennungen
+  passieren dadurch wirklich nur noch an einer Stelle.
+- **Hinweis für den Export:** Die CSV-Kopfzeile heißt jetzt
+  `davon Nierenersatzverfahren (h)` statt `davon CRRT (h)`.
+
+### Fachlich unverändert
+- Es handelt sich um dieselben drei Therapiearten wie bisher; erfasste Daten,
+  Auswertungen und Prognosen sind davon nicht berührt. Intern behalten die
+  Therapiearten ihre bisherigen, dauerhaft stabilen Kennungen — sie stecken in
+  Datenbank, Datensatz-Schlüsseln und bestehenden Backups.
+
 ## [0.19.0] - 2026-07-23 — Patienten entlassen (gegen Karteileichen)
 
 ### Added

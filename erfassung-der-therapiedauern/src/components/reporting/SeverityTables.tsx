@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTherapyStore } from '../../store/therapyStore'
 import { useEffectiveRecords } from '../../store/useEffectiveRecords'
 import { MONTH_SHORT } from '../../lib/statistics'
+import { THERAPY_TYPES } from '../../lib/therapyTypes'
 import {
   avgVentDuration,
   buildIcuRow,
@@ -89,7 +90,8 @@ function SeverityLegend() {
         </dl>
         <p className="mt-3 border-t border-line pt-3 text-xs text-ink-muted">
           Die IMC-Tabelle (Operative IMC) führt nur die manuellen Kennzahlen (Fälle, TISS-28) und den
-          daraus berechneten TISS-28-Wert pro Fall — sie hat keine eigenen Beatmungs-/CRRT-/ECMO-Daten.
+          daraus berechneten TISS-28-Wert pro Fall — sie hat keine eigenen Therapiedaten aus der
+          Erfassung.
           Manuelle Eingaben werden automatisch mit dem lokalen Server synchronisiert.
         </p>
       </div>
@@ -167,7 +169,9 @@ function IcuTable({ rows, year, onInput }: IcuTableProps) {
   return (
     <section className="print-avoid-break rounded-md border border-line bg-surface p-5">
       <h2 className="text-base font-semibold text-ink">ICU — Intensivstation 10</h2>
-      <p className="mt-1 text-sm text-ink-muted">Beatmung, CRRT & ECMO je Monat ({year})</p>
+      <p className="mt-1 text-sm text-ink-muted">
+        {THERAPY_TYPES.map((meta) => meta.short).join(', ')} je Monat ({year})
+      </p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full border-collapse whitespace-nowrap text-sm">
