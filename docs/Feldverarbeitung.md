@@ -8,11 +8,10 @@ Screenshots stammen genau aus diesem Szenario.
 
 Legende: 🖉 = **manuell** erfasst · ⚙ = **automatisch** berechnet.
 
-> **Hinweis zu den Screenshots:** Sie stammen aus der Zeit vor v0.19.1 und
-> zeigen die Therapiearten noch als „CRRT" und „ILA / ECMO". Gemeint sind
-> dieselben Therapiearten, die heute **Nierenersatzverfahren** und **iLA/ECMO**
-> heißen; der Text dieses Dokuments ist bereits auf die aktuellen Bezeichnungen
-> gebracht. Beim nächsten Neuaufnehmen der Screenshots entfällt dieser Hinweis.
+> **Stand der Screenshots:** aufgenommen am 17.08.2026 mit Version 0.20.0. Zwei
+> Werte hängen am Aufnahmezeitpunkt und nicht am Szenario: die **Konfidenz** der
+> Prognose und die Zeile **„Ø pro Monat (÷ verstrichene Monate)"** — beide
+> rechnen mit den bisher verstrichenen Monaten des laufenden Jahres (hier: 8).
 
 ---
 
@@ -102,8 +101,9 @@ keinen Schreibvorgang und kann daher auch bei Ausfällen keine Lücke hinterlass
 | **✕ Verwerfen** | 🖉 | Entfernt eine laufende Therapie **ohne** Stunden zu speichern — für einen versehentlichen „Läuft"-Klick. |
 | Lauf-Anzeige (Puls / ⓘ) | ⚙ | Dauer-Warnung: unter 14 Tagen ein ruhiger Punkt; **ab 14 Tagen** ⓘ „Langzeitbeatmung"; **ab 28 Tagen** ⓘ (rot) „Ende vergessen?". Schwellen an der klinischen Definition orientiert. Maus-Over nennt die Tage. |
 
-*Im Screenshot:* Anton Nierenersatzverfahren läuft seit heute 9 Uhr (Puls, Gesamt 7); Clara
-Beatmung läuft seit 20 Tagen (ⓘ „Langzeitbeatmung ≥ 14 Tage").
+*Im Screenshot:* Anton Nierenersatzverfahren läuft seit heute 9 Uhr (Puls,
+Gesamt 5 — die Stunden 9 bis 13 sind bereits gefüllt); Clara Beatmung läuft seit
+20 Tagen (ⓘ „Langzeitbeatmung ≥ 14 Tage").
 
 ---
 
@@ -117,7 +117,7 @@ Beatmung läuft seit 20 Tagen (ⓘ „Langzeitbeatmung ≥ 14 Tage").
 | Beatmungstage (Jahr) | ⚙ | Summe aller (Patient, Tag) mit ≥1 Beatmungsstunde. | **3** (Anton 28.06. + 03.07., Berta 10.07.) |
 | Therapiestunden (Jahr) | ⚙ | Summe aller markierten Stunden aller Arten. | **88 h** (24+24+12+24+4) |
 | Jahresend-Prognose | ⚙ | Hochrechnung der Beatmungstage aufs Jahresende (saisonal gewichtet). Erfolgt **erst ab 3 Monaten** Datenbasis — vorher wird nichts hochgerechnet, sondern nur der Ist-Stand gezeigt. | **5 Beatmungstage** |
-| Konfidenz | ⚙ | Verlässlichkeitshinweis (kein statistisches Konfidenzintervall): steigt mit der Zahl vorliegender Monate, gedeckelt bei 0,8, mal Modellfaktor. Im Juli: min(7/12; 0,8) × 0,8 = **47 %**. | 47 % |
+| Konfidenz | ⚙ | Verlässlichkeitshinweis (kein statistisches Konfidenzintervall): steigt mit der Zahl vorliegender Monate, gedeckelt bei 0,8, mal Modellfaktor. Im August: min(8/12; 0,8) × 0,8 = **53 %**. | 53 % |
 | Balken je Monat | ⚙ | Nicht-kumulierte Beatmungstage des Monats. | Jun **1**, Jul **2** |
 | Verteilung der Therapiearten | ⚙ | Aktive Tage (mit ≥1 Stunde) je Therapieart im Jahr. | Beatmung 3, Nierenersatz 1, iLA/ECMO 1 |
 
@@ -137,7 +137,7 @@ Beispiel **Beatmung** (Juni + Juli):
 | Tage/Fall | ⚙ | Beg. Tage ÷ **neue** Fälle. | 1,0 | 2,0 (2÷1) |
 | **Gesamt-Zeile** | ⚙ | Spalten aufsummiert; Tage/Fall = Beg. Tage ÷ **neue** Fälle des Jahres. | | Tage/Fall **1,5** (3÷2) |
 | **Ø pro Monat (÷ 12)** | ⚙ | Jahressumme ÷ 12 (immer). Tage/Fall hier = Beg. Tage ÷ **alle** Fälle (neu + fortgeführt). | | Tage/Fall **1,0** (3÷3) |
-| **Ø pro Monat (÷ verstrichene)** | ⚙ | Zusätzlich nur im laufenden Jahr: Summe ÷ bisher verstrichene Monate (÷ 7). | | Stunden **8,6** (60÷7) |
+| **Ø pro Monat (÷ verstrichene)** | ⚙ | Zusätzlich nur im laufenden Jahr: Summe ÷ bisher verstrichene Monate (im Screenshot ÷ 8). | | Stunden **7,5** (60÷8) |
 
 > **Wichtig:** „Tage/Fall" rechnet in der **Gesamt-Zeile** mit den *neuen*
 > Fällen (1,5), in der **Ø-÷12-Zeile** mit *allen* Fällen (1,0). Diese
@@ -175,8 +175,9 @@ aus den Summen neu berechnet.
 > 0,0 — obwohl Beatmungsstunden erfasst wurden. Das ist die Formel der
 > Vorgänger-Anwendung; bitte prüfen, ob das so gewünscht ist (Abschnitt 9).
 
-Die Anwendung enthält eine eingebaute, aufklappbare **Legende** mit genau diesen
-Regeln (Screenshot IMC, unten sichtbar).
+Die Anwendung enthält eine eingebaute **Legende** mit genau diesen Regeln — im
+IMC-Screenshot unten als aufklappbarer Abschnitt „Berechnung & Regeln der
+Schweregradstatistik" sichtbar.
 
 ---
 
@@ -198,6 +199,8 @@ Therapiedaten aus der Erfassung):
 ## 8. MDK-Export (Detailauswertung je Patient)
 
 ![MDK-Export – Detailauswertung](screenshots/07-mdk-export.jpg)
+
+Zu finden unter **Reporting & Controlling → Tab „Export"**.
 
 | Feld | Herkunft | Verarbeitung | Anton | Berta | Clara |
 |---|---|---|---|---|---|
