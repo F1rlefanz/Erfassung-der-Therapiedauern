@@ -82,6 +82,16 @@ IMC **Fälle 5 / TISS-28 250**.
 | Tages-Summe „M h" (je Art) | ⚙ | Summe aller markierten Stunden dieser Art über alle Patienten des Tages. | Nierenersatz **24 h** |
 | Tages-Summe „Gesamt" | ⚙ | Distinkte Patienten des Tages · Summe aller Stunden aller Arten. | **1 Fall · 36 h** (12+24) |
 
+### Aktionen in der Erfassung
+
+| Aktion | Wo | Wirkung |
+|---|---|---|
+| **✎** | Patienten-Kopfzeile | Name und Fallnummer ändern. Die erfassten Stunden bleiben am Patienten hängen. |
+| **Entlassen** | Patienten-Kopfzeile | Der Patient verschwindet aus der **täglichen Erfassungsliste**; seine Stunden bleiben in Statistik, Schweregrad und MDK-Export **unverändert** enthalten. Bei einer Wiederaufnahme genügt es, dieselbe Fallnummer erneut bei „Patient hinzufügen" einzugeben — der Fall wird reaktiviert, die Historie ist wieder verbunden. Rückfrage vor dem Ausführen. |
+| **✕** | Patienten-Kopfzeile | Löscht den Patienten **samt aller erfassten Stunden** — für einen versehentlich angelegten Fall, nicht für eine Entlassung. Rückfrage vor dem Ausführen. |
+| **⌫** | rechts an einer Therapie-Zeile | Leert die Stunden **dieses einen Tages** für diese Therapieart. Bei laufender Therapie gesperrt (erst beenden). |
+| **✕** | rechts an einer Therapie-Zeile | Löscht diese Therapieart des Patienten **an allen Tagen** („hat nie stattgefunden"). Rückfrage vor dem Ausführen. |
+
 ---
 
 ## 4. Laufende Therapien („Läuft" / „Beenden" / „Verwerfen")
